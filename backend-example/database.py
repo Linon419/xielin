@@ -480,6 +480,33 @@ class Database:
         finally:
             conn.close()
 
+    def get_volume_alert_subscriptions(self) -> List[Dict[str, Any]]:
+        """获取所有启用放量提醒的订阅"""
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute('''
+                SELECT user_id, symbol, volume_threshold, volume_timeframe
+                FROM user_subscriptions
+                WHERE volume_alert_enabled = 1 AND is_enabled = 1
+            ''')
+
+            subscriptions = []
+            for row in cursor.fetchall():
+                subscriptions.append({
+                    'user_id': row[0],
+                    'symbol': row[1],
+                    'volume_threshold': row[2] or 2.0,  # 默认2倍
+                    'volume_timeframe': row[3] or '5m'  # 默认5分钟
+                })
+
+            return subscriptions
+
+        except Exception as e:
+            logger.error(f"获取放量提醒订阅失败: {e}")
+            return []
+        finally:
+            conn.close()
+
     def update_user_telegram_config(self, user_id: int, chat_id: str = None, enabled: bool = False) -> bool:
         """更新用户Telegram配置"""
         conn = self.get_connection()
