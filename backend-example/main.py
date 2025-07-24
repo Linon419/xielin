@@ -32,7 +32,7 @@ import pandas_ta as ta
 # 导入用户系统模块
 from database import db
 from auth_routes import auth_router, user_router
-from message_routes import message_router
+from message_routes import message_router, subscription_router
 from websocket_service import manager, realtime_service
 from message_service import message_service, periodic_cleanup
 from auth import get_current_user, get_optional_user
@@ -56,6 +56,7 @@ setup_error_handlers(app)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(message_router)
+app.include_router(subscription_router)
 
 # 配置CORS
 app.add_middleware(
