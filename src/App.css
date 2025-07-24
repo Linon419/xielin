@@ -1,0 +1,293 @@
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+}
+
+/* 应用布局 */
+.app-layout {
+  min-height: 100vh;
+}
+
+/* 头部样式 */
+.app-header {
+  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 内容区域 */
+.app-content {
+  padding: 0;
+  background-color: #f0f2f5;
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* 介绍区域 */
+.intro-section {
+  background: white;
+  padding: 48px 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.intro-content h2 {
+  background: linear-gradient(135deg, #1890ff, #722ed1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 主要功能区域 */
+.main-section {
+  margin-top: 24px;
+}
+
+/* 表单样式 */
+.strategy-form-card {
+  position: sticky;
+  top: 88px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.strategy-form-card .ant-card-head {
+  background: linear-gradient(135deg, #f0f9ff, #f0f2ff);
+  border-radius: 12px 12px 0 0;
+}
+
+.form-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border-left: 4px solid #1890ff;
+}
+
+.form-section h4 {
+  margin: 0 0 16px 0;
+  font-weight: 600;
+}
+
+/* 策略结果样式 */
+.strategy-result {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.strategy-overview-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff, #f8faff);
+}
+
+.strategy-overview-card .card-header h2 {
+  background: linear-gradient(135deg, #1890ff, #722ed1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 占位内容 */
+.placeholder-content {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* 底部样式 */
+.app-footer {
+  background: #001529;
+  color: white;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 16px;
+  }
+  
+  .intro-section {
+    padding: 32px 16px;
+  }
+  
+  .intro-content h2 {
+    font-size: 24px;
+  }
+  
+  .strategy-form-card {
+    position: static;
+    margin-bottom: 24px;
+  }
+  
+  .header-content {
+    padding: 0 16px;
+  }
+  
+  .header-content h3 {
+    font-size: 18px;
+  }
+  
+  .form-section {
+    padding: 12px;
+  }
+  
+  .placeholder-content > div {
+    padding: 40px 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .intro-content h2 {
+    font-size: 20px;
+  }
+  
+  .intro-content p {
+    font-size: 14px;
+  }
+  
+  .intro-content .ant-col {
+    margin-bottom: 24px;
+  }
+  
+  .strategy-overview-card .card-header h2 {
+    font-size: 16px;
+  }
+  
+  .ant-statistic-title {
+    font-size: 12px;
+  }
+  
+  .ant-statistic-content {
+    font-size: 18px;
+  }
+}
+
+/* 自定义Ant Design组件样式 */
+.ant-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff, #722ed1);
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #40a9ff, #9254de);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+.ant-tabs-tab {
+  font-weight: 500;
+}
+
+.ant-tabs-tab-active {
+  font-weight: 600;
+}
+
+.ant-progress-line {
+  display: inline-block;
+}
+
+.ant-badge {
+  font-weight: 500;
+}
+
+.ant-statistic-title {
+  font-weight: 500;
+  color: #666;
+}
+
+.ant-statistic-content {
+  font-weight: 600;
+}
+
+/* 加载动画 */
+.ant-spin-container {
+  transition: opacity 0.3s;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 打印样式 */
+@media print {
+  .app-header,
+  .app-footer,
+  .ant-back-top {
+    display: none;
+  }
+  
+  .app-content {
+    padding: 0;
+  }
+  
+  .strategy-form-card {
+    display: none;
+  }
+  
+  .ant-col-lg-16 {
+    width: 100% !important;
+  }
+}

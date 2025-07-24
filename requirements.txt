@@ -1,0 +1,5 @@
+# Vercel Python Serverless Functions 依赖
+# 注意：这些依赖是可选的，如果没有配置API密钥，系统会自动使用公开API
+ccxt==4.1.64
+pandas==2.1.4
+numpy==1.24.3
