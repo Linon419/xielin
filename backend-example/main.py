@@ -532,12 +532,37 @@ async def get_contract_history(
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
+    # 检查是否配置了API密钥（这里我们使用公共API，所以是false）
+    api_keys_configured = False
+
+    # 检查环境变量中是否有API密钥配置
+    import os
+    binance_api_key = os.getenv('BINANCE_API_KEY')
+    binance_secret = os.getenv('BINANCE_SECRET')
+
+    if binance_api_key and binance_secret:
+        api_keys_configured = True
+
     return {
         "success": True,
         "data": {
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat() + "Z",
-            "exchanges": list(exchanges.keys())
+            "exchanges": list(exchanges.keys()),
+            "api_mode": "private" if api_keys_configured else "public",
+            "api_keys_configured": api_keys_configured,
+            "ccxt_available": True,
+            "features": {
+                "real_time_data": True,
+                "historical_data": True,
+                "funding_rate": True,
+                "high_frequency": api_keys_configured,  # 私有API才有高频访问
+                "account_info": api_keys_configured     # 私有API才能获取账户信息
+            },
+            "rate_limits": {
+                "private_api": "1200/min" if api_keys_configured else "N/A",
+                "public_api": "1200/min"
+            }
         }
     }
 

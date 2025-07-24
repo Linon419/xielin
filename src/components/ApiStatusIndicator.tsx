@@ -45,25 +45,43 @@ const ApiStatusIndicator: React.FC = () => {
 
       if (result.success && result.data) {
         setApiStatus({
-          api_mode: 'private',
-          api_keys_configured: true,
-          ccxt_available: true,
-          available_exchanges: result.data.exchanges || ['binance', 'okx', 'bybit'],
-          features: {
+          api_mode: result.data.api_mode || 'public',
+          api_keys_configured: result.data.api_keys_configured || false,
+          ccxt_available: result.data.ccxt_available || true,
+          available_exchanges: result.data.exchanges || ['binance'],
+          features: result.data.features || {
             real_time_data: true,
             historical_data: true,
             funding_rate: true,
-            high_frequency: true,
+            high_frequency: false,
             account_info: false
           },
-          rate_limits: {
-            private_api: '1200/min',
+          rate_limits: result.data.rate_limits || {
+            private_api: 'N/A',
             public_api: '1200/min'
           }
         });
       }
     } catch (error) {
       console.error('获取API状态失败:', error);
+      // 设置默认状态为公共API
+      setApiStatus({
+        api_mode: 'public',
+        api_keys_configured: false,
+        ccxt_available: true,
+        available_exchanges: ['binance'],
+        features: {
+          real_time_data: true,
+          historical_data: true,
+          funding_rate: true,
+          high_frequency: false,
+          account_info: false
+        },
+        rate_limits: {
+          private_api: 'N/A',
+          public_api: '1200/min'
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -76,7 +94,7 @@ const ApiStatusIndicator: React.FC = () => {
 
   const getStatusText = () => {
     if (!apiStatus) return '未知';
-    return apiStatus.api_mode === 'private' ? '私有API' : '公开API';
+    return apiStatus.api_mode === 'private' ? '私有API' : '公共API';
   };
 
   const getStatusIcon = () => {
@@ -86,11 +104,11 @@ const ApiStatusIndicator: React.FC = () => {
 
   const getTooltipTitle = () => {
     if (!apiStatus) return 'API状态未知';
-    
+
     if (apiStatus.api_mode === 'private') {
       return `使用私有API - 高频率访问，完整功能`;
     } else {
-      return `使用公开API - 基础功能，无需配置`;
+      return `使用公共API - 基础功能，无需配置`;
     }
   };
 
@@ -144,7 +162,7 @@ const ApiStatusIndicator: React.FC = () => {
                   color={apiStatus.api_mode === 'private' ? 'green' : 'blue'}
                   icon={apiStatus.api_mode === 'private' ? <KeyOutlined /> : <GlobalOutlined />}
                 >
-                  {apiStatus.api_mode === 'private' ? '私有API模式' : '公开API模式'}
+                  {apiStatus.api_mode === 'private' ? '私有API模式' : '公共API模式'}
                 </Tag>
                 {apiStatus.api_mode === 'private' && (
                   <Tag color="gold">高级功能</Tag>
@@ -177,7 +195,7 @@ const ApiStatusIndicator: React.FC = () => {
                     </Tag>
                   ))
                 ) : (
-                  <Tag color="default">Binance (公开API)</Tag>
+                  <Tag color="default">Binance (公共API)</Tag>
                 )}
               </Space>
             </Descriptions.Item>
@@ -215,7 +233,7 @@ const ApiStatusIndicator: React.FC = () => {
                   </Text>
                 )}
                 <Text>
-                  <Tag color="blue">公开API</Tag>
+                  <Tag color="blue">公共API</Tag>
                   {apiStatus.rate_limits.public_api}
                 </Text>
               </Space>
