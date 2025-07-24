@@ -82,11 +82,40 @@ EXCHANGES_CONFIG = {
     }
 }
 
+# 检查API密钥配置
+def get_api_credentials():
+    """获取API凭证配置"""
+    api_key = os.getenv('BINANCE_API_KEY')
+    secret = os.getenv('BINANCE_SECRET')
+    return api_key, secret
+
+def is_private_api_configured():
+    """检查是否配置了私有API"""
+    api_key, secret = get_api_credentials()
+    return bool(api_key and secret)
+
 # 初始化交易所
 exchanges = {}
+api_key, secret = get_api_credentials()
+use_private_api = is_private_api_configured()
+
 for name, config in EXCHANGES_CONFIG.items():
     try:
-        exchanges[name] = config['class'](config['options'])
+        exchange_config = config['options'].copy()
+
+        # 如果配置了API密钥且是Binance，则使用私有API
+        if use_private_api and name == 'binance':
+            exchange_config.update({
+                'apiKey': api_key,
+                'secret': secret,
+                'enableRateLimit': True,
+                'rateLimit': 50,  # 私有API更高的频率限制
+            })
+            logger.info(f"使用私有API初始化交易所 {name}")
+        else:
+            logger.info(f"使用公共API初始化交易所 {name}")
+
+        exchanges[name] = config['class'](exchange_config)
         logger.info(f"初始化交易所 {name} 成功")
     except Exception as e:
         logger.error(f"初始化交易所 {name} 失败: {e}")
@@ -532,16 +561,8 @@ async def get_contract_history(
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
-    # 检查是否配置了API密钥（这里我们使用公共API，所以是false）
-    api_keys_configured = False
-
-    # 检查环境变量中是否有API密钥配置
-    import os
-    binance_api_key = os.getenv('BINANCE_API_KEY')
-    binance_secret = os.getenv('BINANCE_SECRET')
-
-    if binance_api_key and binance_secret:
-        api_keys_configured = True
+    # 使用统一的API配置检查函数
+    api_keys_configured = is_private_api_configured()
 
     return {
         "success": True,
@@ -562,6 +583,21 @@ async def health_check():
             "rate_limits": {
                 "private_api": "1200/min" if api_keys_configured else "N/A",
                 "public_api": "1200/min"
+            },
+            "mode_info": {
+                "current_mode": "private" if api_keys_configured else "public",
+                "switch_tip": "在.env文件中配置BINANCE_API_KEY和BINANCE_SECRET可启用私有API模式" if not api_keys_configured else "私有API模式已启用，享受完整功能",
+                "benefits": [
+                    "高频率访问",
+                    "账户信息获取",
+                    "更稳定的连接",
+                    "完整交易功能"
+                ] if api_keys_configured else [
+                    "无需配置",
+                    "基础功能完整",
+                    "免费使用",
+                    "开箱即用"
+                ]
             }
         }
     }
@@ -584,6 +620,14 @@ async def legacy_api_status():
 async def startup_event():
     """应用启动时的初始化"""
     logger.info("应用启动中...")
+
+    # 显示API模式信息
+    if is_private_api_configured():
+        logger.info("🔑 使用私有API模式 - 高频率访问，完整功能")
+        logger.info("✅ API密钥已配置")
+    else:
+        logger.info("🌐 使用公共API模式 - 基础功能，无需配置")
+        logger.info("💡 提示：在.env文件中配置BINANCE_API_KEY和BINANCE_SECRET可启用私有API模式")
 
     # 初始化数据库
     try:
