@@ -4,54 +4,30 @@ version: '3.8'
 # 使用方法: docker-compose -f docker-compose.dev.yml up --build
 
 services:
-  # 后端服务 - 开发模式
-  backend:
+  # 合并的前后端服务 - 开发模式
+  xielin-dev:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: Dockerfile
       platforms:
         - linux/arm64
-    container_name: xielin-backend-dev
+    container_name: xielin-app-dev
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - DEBUG=true
     volumes:
-      - ./backend-example:/app
       - ./data:/app/data
+      - ./logs:/var/log/supervisor
     ports:
-      - "8000:8000"
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - "3000:80"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/health", "&&", "curl", "-f", "http://localhost/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     restart: unless-stopped
-    networks:
-      - xielin-network
-
-  # 前端服务 - 开发模式
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-      platforms:
-        - linux/arm64
-    container_name: xielin-frontend-dev
-    ports:
-      - "3000:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - xielin-network
-
-networks:
-  xielin-network:
-    driver: bridge
 
 volumes:
   xielin-data:

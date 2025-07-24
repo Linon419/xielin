@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🐳 开始构建 ARM64 Docker 镜像..."
+echo "🐳 开始构建 ARM64 Docker 镜像（合并版本）..."
 
 # 检查Docker是否支持buildx
 if ! docker buildx version &> /dev/null; then
@@ -17,23 +17,13 @@ fi
 echo "🔧 设置 Docker buildx..."
 docker buildx create --name xielin-builder --use --bootstrap 2>/dev/null || docker buildx use xielin-builder
 
-# 构建前端镜像
-echo "🎨 构建前端镜像 (ARM64)..."
+# 构建合并镜像（前端+后端）
+echo "🚀 构建合并镜像 (ARM64) - 包含前端和后端..."
 docker buildx build \
     --platform linux/arm64 \
-    -f Dockerfile.frontend \
-    -t xielin-frontend:latest \
-    -t xielin-frontend:arm64 \
-    --load \
-    .
-
-# 构建后端镜像
-echo "⚙️  构建后端镜像 (ARM64)..."
-docker buildx build \
-    --platform linux/arm64 \
-    -f Dockerfile.backend \
-    -t xielin-backend:latest \
-    -t xielin-backend:arm64 \
+    -f Dockerfile \
+    -t xielin:latest \
+    -t xielin:arm64 \
     --load \
     .
 

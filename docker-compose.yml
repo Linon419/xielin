@@ -1,55 +1,31 @@
 version: '3.8'
 
 services:
-  # 后端服务
-  backend:
-    image: ghcr.io/linon419/xielin-backend:latest
+  # 合并的前后端服务
+  xielin:
+    image: ghcr.io/linon419/xielin:latest
     # 如果要本地构建，取消注释以下内容：
     # build:
     #   context: .
-    #   dockerfile: Dockerfile.backend
+    #   dockerfile: Dockerfile
     #   platforms:
     #     - linux/arm64
-    container_name: xielin-backend
+    container_name: xielin-app
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     volumes:
       - ./data:/app/data
+      - ./logs:/var/log/supervisor
     ports:
-      - "8000:8000"
+      - "80:80"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/health", "&&", "curl", "-f", "http://localhost/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     restart: unless-stopped
-    networks:
-      - xielin-network
-
-  # 前端服务
-  frontend:
-    image: ghcr.io/linon419/xielin-frontend:latest
-    # 如果要本地构建，取消注释以下内容：
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile.frontend
-    #   platforms:
-    #     - linux/arm64
-    container_name: xielin-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - xielin-network
-
-networks:
-  xielin-network:
-    driver: bridge
 
 volumes:
   xielin-data:

@@ -57,27 +57,25 @@ sleep 10
 echo "🔍 检查服务状态..."
 docker-compose ps
 
-# 检查后端健康状态
-echo "🏥 检查后端健康状态..."
-if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-    echo "✅ 后端服务正常"
-else
-    echo "❌ 后端服务异常，请检查日志"
-    docker-compose logs backend
-fi
-
-# 检查前端状态
-echo "🌐 检查前端状态..."
+# 检查应用健康状态
+echo "🏥 检查应用健康状态..."
 if curl -f http://localhost/health > /dev/null 2>&1; then
     echo "✅ 前端服务正常"
 else
     echo "❌ 前端服务异常，请检查日志"
-    docker-compose logs frontend
+    docker-compose logs xielin
+fi
+
+if curl -f http://localhost/api/health > /dev/null 2>&1; then
+    echo "✅ 后端API正常"
+else
+    echo "❌ 后端API异常，请检查日志"
+    docker-compose logs xielin
 fi
 
 echo ""
 echo "🎉 部署完成！"
-echo "📱 前端访问地址: http://localhost"
-echo "🔧 后端API地址: http://localhost:8000"
-echo "📊 查看日志: docker-compose logs -f"
+echo "📱 应用访问地址: http://localhost"
+echo "🔧 后端API地址: http://localhost/api"
+echo "📊 查看日志: docker-compose logs -f xielin"
 echo "🛑 停止服务: docker-compose down"

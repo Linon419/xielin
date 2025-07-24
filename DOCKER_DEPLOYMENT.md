@@ -1,6 +1,6 @@
-# Docker 部署指南 (ARM64)
+# Docker 部署指南 (ARM64) - 合并版本
 
-本项目支持通过 Docker 在 ARM64 架构设备上部署，包括 Apple Silicon Mac、ARM 服务器等。
+本项目支持通过单一 Docker 容器在 ARM64 架构设备上部署，包括 Apple Silicon Mac、ARM 服务器等。前端和后端已合并到一个容器中，简化了部署过程。
 
 ## 🚀 快速开始
 
@@ -31,12 +31,12 @@ docker-compose -f docker-compose.dev.yml up -d
 
 ## 📦 Docker 镜像
 
-项目包含两个 Docker 镜像：
+项目使用单一的合并 Docker 镜像：
 
-- **前端镜像**: `ghcr.io/linon419/xielin-frontend:latest`
-- **后端镜像**: `ghcr.io/linon419/xielin-backend:latest`
-
-所有镜像都针对 ARM64 架构优化。
+- **合并镜像**: `ghcr.io/linon419/xielin:latest`
+  - 包含：React 前端 + FastAPI 后端 + Nginx 反向代理
+  - 架构：ARM64 优化
+  - 端口：80 (HTTP)
 
 ## 🔧 配置说明
 
@@ -58,9 +58,9 @@ REACT_APP_APP_NAME=加密货币合约谢林点交易策略平台
 
 ### 端口配置
 
-- **前端**: http://localhost:80
-- **后端**: http://localhost:8000
-- **API**: http://localhost/api
+- **应用入口**: http://localhost:80
+- **前端页面**: http://localhost/
+- **后端API**: http://localhost/api
 
 ## 🛠️ 开发环境
 
