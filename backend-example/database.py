@@ -224,7 +224,8 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.execute('''
-                SELECT id, username, email, password_hash, salt, is_active, preferences, created_at, last_login, avatar_url
+                SELECT id, username, email, password_hash, salt, is_active, preferences, created_at, last_login, avatar_url,
+                       telegram_chat_id, telegram_enabled
                 FROM users
                 WHERE (username = ? OR email = ?) AND is_active = 1
             ''', (username, username))
@@ -251,7 +252,9 @@ class Database:
                 'created_at': user['created_at'],
                 'last_login': user['last_login'],
                 'avatar_url': user['avatar_url'],
-                'preferences': json.loads(user['preferences'] or '{}')
+                'preferences': json.loads(user['preferences'] or '{}'),
+                'telegram_chat_id': user['telegram_chat_id'],
+                'telegram_enabled': bool(user['telegram_enabled'])
             }
             
         except Exception as e:
@@ -265,8 +268,9 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.execute('''
-                SELECT id, username, email, created_at, last_login, avatar_url, preferences
-                FROM users 
+                SELECT id, username, email, created_at, last_login, avatar_url, preferences,
+                       telegram_chat_id, telegram_enabled
+                FROM users
                 WHERE id = ? AND is_active = 1
             ''', (user_id,))
             
@@ -279,7 +283,9 @@ class Database:
                     'created_at': user['created_at'],
                     'last_login': user['last_login'],
                     'avatar_url': user['avatar_url'],
-                    'preferences': json.loads(user['preferences'] or '{}')
+                    'preferences': json.loads(user['preferences'] or '{}'),
+                    'telegram_chat_id': user['telegram_chat_id'],
+                    'telegram_enabled': bool(user['telegram_enabled'])
                 }
             return None
             
