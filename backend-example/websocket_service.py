@@ -175,16 +175,36 @@ class RealTimeDataService:
                 logger.error(f"价格数据更新失败: {e}")
                 await asyncio.sleep(5)
     
+    def _normalize_symbol(self, symbol: str) -> str:
+        """标准化交易对符号格式"""
+        # 如果已经是正确格式（包含/），直接返回
+        if '/' in symbol:
+            return symbol
+
+        # 如果是单独的币种名称，添加/USDT
+        if symbol and not symbol.endswith('USDT'):
+            return f"{symbol}/USDT"
+
+        # 如果已经以USDT结尾，添加/
+        if symbol.endswith('USDT') and '/' not in symbol:
+            base = symbol[:-4]  # 移除USDT
+            return f"{base}/USDT"
+
+        return symbol
+
     async def _get_ticker_data(self, symbol: str) -> Optional[dict]:
         """获取ticker数据"""
         from main import exchanges
-        
+
         try:
             exchange = exchanges.get('binance')
             if not exchange:
                 return None
-                
-            ticker = exchange.fetch_ticker(symbol)
+
+            # 标准化符号格式
+            normalized_symbol = self._normalize_symbol(symbol)
+
+            ticker = exchange.fetch_ticker(normalized_symbol)
             return {
                 'symbol': ticker['symbol'],
                 'last': ticker['last'],
