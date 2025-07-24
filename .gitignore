@@ -125,3 +125,10 @@ __pycache__/
 
 # Python logs
 *.log
+
+# Docker
+.dockerignore
+
+# 部署相关
+data/
+logs/
