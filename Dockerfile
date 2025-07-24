@@ -10,10 +10,11 @@ COPY package*.json ./
 # 安装前端依赖
 RUN npm ci --only=production
 
-# 复制前端源代码
-COPY src/ ./src/
-COPY public/ ./public/
-COPY tsconfig.json ./
+# 复制所有前端文件
+COPY . ./
+
+# 清理不需要的文件
+RUN rm -rf node_modules backend-example .git
 
 # 创建生产环境变量文件
 RUN echo "REACT_APP_API_BASE_URL=/api" > .env.production
