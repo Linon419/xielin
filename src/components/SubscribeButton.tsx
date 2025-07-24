@@ -22,6 +22,7 @@ import {
 import { Subscription } from '../types/auth';
 import authService from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
+import { eventBus, EVENTS } from '../utils/eventBus';
 
 const { Option } = Select;
 
@@ -84,6 +85,9 @@ const SubscribeButton: React.FC<SubscribeButtonProps> = ({
         setIsSubscribed(false);
         setSubscription(null);
         antMessage.success(`已取消订阅 ${symbol}`);
+
+        // 发送订阅移除事件
+        eventBus.emit(EVENTS.SUBSCRIPTION_REMOVED, { symbol });
       } catch (error) {
         console.error('取消订阅失败:', error);
         antMessage.error('取消订阅失败');
@@ -119,6 +123,9 @@ const SubscribeButton: React.FC<SubscribeButtonProps> = ({
       setModalVisible(false);
       form.resetFields();
       antMessage.success(`已订阅 ${symbol}`);
+
+      // 发送订阅添加事件
+      eventBus.emit(EVENTS.SUBSCRIPTION_ADDED, { symbol, subscription: newSubscription });
     } catch (error) {
       console.error('订阅失败:', error);
       antMessage.error('订阅失败');

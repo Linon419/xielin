@@ -1,0 +1,26 @@
+# 测试Dockerfile - 验证文件复制是否正常
+FROM node:18-alpine
+
+WORKDIR /app
+
+# 测试1: 复制package.json
+COPY package*.json ./
+RUN echo "✅ package.json 复制成功" && ls -la package*.json
+
+# 测试2: 复制src目录
+COPY src/ ./src/
+RUN echo "✅ src/ 目录复制成功" && ls -la src/
+
+# 测试3: 复制public目录
+COPY public/ ./public/
+RUN echo "✅ public/ 目录复制成功" && ls -la public/
+
+# 测试4: 复制tsconfig.json
+COPY tsconfig.json ./
+RUN echo "✅ tsconfig.json 复制成功" && ls -la tsconfig.json
+
+# 显示最终结果
+RUN echo "=== 所有文件复制完成 ===" && ls -la ./
+
+# 简单命令保持容器运行
+CMD ["echo", "测试完成"]

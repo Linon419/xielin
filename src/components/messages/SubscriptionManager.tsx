@@ -33,6 +33,7 @@ import {
 import { Subscription } from '../../types/auth';
 import authService from '../../services/authService';
 import { formatDistanceToNow } from '../../utils/dateUtils';
+import { eventBus, EVENTS } from '../../utils/eventBus';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -74,6 +75,26 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
 
   useEffect(() => {
     fetchSubscriptions();
+
+    // 监听订阅变化事件
+    const unsubscribeAdded = eventBus.on(EVENTS.SUBSCRIPTION_ADDED, () => {
+      fetchSubscriptions();
+    });
+
+    const unsubscribeRemoved = eventBus.on(EVENTS.SUBSCRIPTION_REMOVED, () => {
+      fetchSubscriptions();
+    });
+
+    const unsubscribeUpdated = eventBus.on(EVENTS.SUBSCRIPTION_UPDATED, () => {
+      fetchSubscriptions();
+    });
+
+    // 清理事件监听器
+    return () => {
+      unsubscribeAdded();
+      unsubscribeRemoved();
+      unsubscribeUpdated();
+    };
   }, []);
 
   // 切换订阅状态
@@ -87,6 +108,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
       );
       onSubscriptionChange?.();
       antMessage.success(`${symbol} 订阅已${enabled ? '启用' : '禁用'}`);
+
+      // 发送订阅更新事件
+      eventBus.emit(EVENTS.SUBSCRIPTION_UPDATED, { symbol, enabled });
     } catch (error) {
       console.error('切换订阅状态失败:', error);
       antMessage.error('操作失败');
@@ -100,6 +124,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
       setSubscriptions(prev => prev.filter(sub => sub.symbol !== symbol));
       onSubscriptionChange?.();
       antMessage.success(`已删除 ${symbol} 的订阅`);
+
+      // 发送订阅移除事件
+      eventBus.emit(EVENTS.SUBSCRIPTION_REMOVED, { symbol });
     } catch (error) {
       console.error('删除订阅失败:', error);
       antMessage.error('删除失败');
@@ -132,6 +159,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
       form.resetFields();
       onSubscriptionChange?.();
       antMessage.success(`已添加 ${newSubscription.symbol} 的订阅`);
+
+      // 发送订阅添加事件
+      eventBus.emit(EVENTS.SUBSCRIPTION_ADDED, { symbol: newSubscription.symbol, subscription: newSubscription });
     } catch (error) {
       console.error('添加订阅失败:', error);
       antMessage.error('添加订阅失败');
