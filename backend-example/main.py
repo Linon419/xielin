@@ -18,7 +18,7 @@ except ImportError:
 except Exception as e:
     print(f"加载环境变量失败: {e}")
 
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import ccxt
 import asyncio
@@ -32,9 +32,12 @@ import pandas_ta as ta
 # 导入用户系统模块
 from database import db
 from auth_routes import auth_router, user_router
-from message_routes import message_router, subscription_router
+from message_routes import message_router
+from websocket_service import manager, realtime_service
 from message_service import message_service, periodic_cleanup
 from auth import get_current_user, get_optional_user
+from error_handler import setup_error_handlers, RetryHandler, exchange_circuit_breaker
+from cache_service import cached, cache_manager, data_aggregator, cleanup_caches
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -46,11 +49,13 @@ app = FastAPI(
     version="2.0.0"
 )
 
+# 设置错误处理器
+setup_error_handlers(app)
+
 # 注册路由
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(message_router)
-app.include_router(subscription_router)
 
 # 配置CORS
 app.add_middleware(
@@ -378,6 +383,7 @@ async def fetch_from_exchanges(func_name: str, symbol: str, *args, **kwargs):
     raise HTTPException(status_code=404, detail=f"无法从任何交易所获取 {symbol} 的数据")
 
 @app.get("/api/contracts/{symbol}/market")
+@cached(cache_type='market_data', ttl=60, key_prefix='market_data')
 async def get_contract_market_data(symbol: str):
     """获取合约市场数据"""
     cache_key = get_cache_key("market", symbol)
@@ -521,6 +527,7 @@ async def search_contracts(q: str = Query(..., description="搜索关键词")):
     return {"success": True, "data": results}
 
 @app.get("/api/contracts/{symbol}/history")
+@cached(cache_type='market_data', ttl=300, key_prefix='history_data')
 async def get_contract_history(
     symbol: str,
     timeframe: str = Query("1h", description="时间周期"),
@@ -615,6 +622,68 @@ async def legacy_api_status():
     logger.info("收到旧API状态调用，重定向到健康检查")
     return await health_check()
 
+# WebSocket路由
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
+    """WebSocket连接端点"""
+    import json
+    try:
+        await manager.connect(websocket, user_id)
+
+        while True:
+            # 接收客户端消息
+            data = await websocket.receive_text()
+            message = json.loads(data)
+
+            # 处理不同类型的消息
+            if message.get('type') == 'subscribe':
+                symbol = message.get('symbol')
+                if symbol:
+                    manager.subscribe_symbol(user_id, symbol)
+                    await manager.send_personal_message({
+                        'type': 'subscription_success',
+                        'symbol': symbol,
+                        'message': f'已订阅 {symbol} 的实时数据'
+                    }, user_id)
+
+            elif message.get('type') == 'unsubscribe':
+                symbol = message.get('symbol')
+                if symbol:
+                    manager.unsubscribe_symbol(user_id, symbol)
+                    await manager.send_personal_message({
+                        'type': 'unsubscription_success',
+                        'symbol': symbol,
+                        'message': f'已取消订阅 {symbol} 的实时数据'
+                    }, user_id)
+
+            elif message.get('type') == 'ping':
+                await manager.send_personal_message({
+                    'type': 'pong',
+                    'timestamp': datetime.utcnow().isoformat()
+                }, user_id)
+
+    except WebSocketDisconnect:
+        manager.disconnect(user_id)
+    except Exception as e:
+        logger.error(f"WebSocket错误: {e}")
+        manager.disconnect(user_id)
+
+@app.get("/api/ws/stats")
+async def get_websocket_stats():
+    """获取WebSocket连接统计"""
+    return {
+        "success": True,
+        "data": manager.get_connection_stats()
+    }
+
+@app.get("/api/cache/stats")
+async def get_cache_stats():
+    """获取缓存统计信息"""
+    return {
+        "success": True,
+        "data": cache_manager.get_all_stats()
+    }
+
 # 启动事件
 @app.on_event("startup")
 async def startup_event():
@@ -640,10 +709,22 @@ async def startup_event():
     asyncio.create_task(periodic_cleanup())
     logger.info("定期清理任务已启动")
 
+    # 启动实时数据服务
+    await realtime_service.start()
+    logger.info("实时数据服务已启动")
+
+    # 启动缓存清理任务
+    asyncio.create_task(cleanup_caches())
+    logger.info("缓存清理任务已启动")
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时的清理"""
     logger.info("应用正在关闭...")
+
+    # 停止实时数据服务
+    await realtime_service.stop()
+    logger.info("实时数据服务已停止")
 
 if __name__ == "__main__":
     import uvicorn
