@@ -107,11 +107,11 @@ class CacheManager:
     def __init__(self):
         # 不同类型数据使用不同的缓存实例和TTL
         self.caches = {
-            'price_data': MemoryCache(ttl=30),      # 价格数据30秒
-            'market_data': MemoryCache(ttl=60),     # 市场数据1分钟
-            'strategy_data': MemoryCache(ttl=300),  # 策略数据5分钟
-            'user_data': MemoryCache(ttl=600),      # 用户数据10分钟
-            'config_data': MemoryCache(ttl=3600),   # 配置数据1小时
+            'price_data': MemoryCache(default_ttl=30),      # 价格数据30秒
+            'market_data': MemoryCache(default_ttl=60),     # 市场数据1分钟
+            'strategy_data': MemoryCache(default_ttl=300),  # 策略数据5分钟
+            'user_data': MemoryCache(default_ttl=600),      # 用户数据10分钟
+            'config_data': MemoryCache(default_ttl=3600),   # 配置数据1小时
         }
     
     def get_cache(self, cache_type: str) -> MemoryCache:
