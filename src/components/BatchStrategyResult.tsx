@@ -25,6 +25,7 @@ import { StrategyOutput, StrategyInput } from '../types/strategy';
 import StrategyResult from './StrategyResult';
 import PriceChart from './PriceChart';
 import SubscribeButton from './SubscribeButton';
+import './BatchStrategyResult.css';
 
 const { Text } = Typography;
 
@@ -35,6 +36,26 @@ interface BatchStrategyResultProps {
 const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies }) => {
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyOutput | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+
+  // 根据图表数量计算自适应列宽
+  const getResponsiveSpan = (totalCount: number) => {
+    if (totalCount === 1) {
+      return { xs: 24, sm: 24, md: 24, lg: 24, xl: 24 }; // 1张图占满屏幕
+    } else if (totalCount === 2) {
+      return { xs: 24, sm: 24, md: 12, lg: 12, xl: 12 }; // 2张图各占一半
+    } else if (totalCount === 3) {
+      return { xs: 24, sm: 24, md: 12, lg: 8, xl: 8 }; // 3张图各占1/3
+    } else if (totalCount === 4) {
+      return { xs: 24, sm: 12, md: 12, lg: 6, xl: 6 }; // 4张图各占1/4
+    } else if (totalCount === 5) {
+      return { xs: 24, sm: 12, md: 8, lg: 6, xl: 4 }; // 5张图，xl下每行5个，lg下每行4个
+    } else if (totalCount === 6) {
+      return { xs: 24, sm: 12, md: 8, lg: 4, xl: 4 }; // 6张图各占1/6
+    } else {
+      // 7张图及以上，使用固定布局
+      return { xs: 24, sm: 12, md: 8, lg: 6, xl: 4 };
+    }
+  };
 
   // 将StrategyOutput转换为StrategyInput（用于PriceChart）
   const convertToStrategyInput = (strategy: StrategyOutput): StrategyInput => {
@@ -428,37 +449,96 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
               </Space>
             </Divider>
 
-            <Card size="small" style={{ marginBottom: 16 }}>
-              <Text strong>同时展示所有 {strategies.length} 个标的的价格走势，便于对比分析</Text>
+            <Card size="small" className="layout-info">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Text strong>同时展示所有 {strategies.length} 个标的的价格走势，便于对比分析</Text>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  {strategies.length === 1 && '💻 单图全屏显示模式 - 图表占满整个屏幕宽度'}
+                  {strategies.length === 2 && '💻 双图并排显示模式 - 每图占屏幕50%宽度'}
+                  {strategies.length === 3 && '💻 三图自适应显示模式 - 每图占屏幕33.3%宽度'}
+                  {strategies.length === 4 && '💻 四图网格显示模式 - 每图占屏幕25%宽度'}
+                  {strategies.length === 5 && '💻 五图自适应显示模式 - 每图占屏幕20%宽度'}
+                  {strategies.length === 6 && '💻 六图网格显示模式 - 每图占屏幕16.7%宽度'}
+                  {strategies.length > 6 && `💻 多图网格显示模式 - ${strategies.length}个图表自适应布局`}
+                </Text>
+              </Space>
             </Card>
 
             {/* 所有策略的价格分析图表 */}
-            <Row gutter={[16, 16]}>
-              {strategies.map((strategy, index) => (
-                <Col xs={24} sm={24} md={12} lg={12} xl={8} key={strategy.symbol || index}>
-                  <Card
-                    title={
-                      <Space>
-                        <Text strong>{strategy.symbol}</Text>
-                        <Tag color={strategy.type === '兜底区' ? 'green' : 'orange'}>
-                          {strategy.type}
-                        </Tag>
-                        <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
-                      </Space>
-                    }
-                    size="small"
-                    style={{ height: '650px' }}
-                  >
-                    <div style={{ height: '570px', overflow: 'hidden' }}>
-                      <PriceChart
-                        input={convertToStrategyInput(strategy)}
-                        compact={true}
-                      />
+            <div className={`adaptive-grid ${
+              strategies.length === 1 ? 'single-chart' :
+              strategies.length === 2 ? 'two-charts' :
+              strategies.length === 3 ? 'three-charts' :
+              strategies.length === 4 ? 'four-charts' :
+              strategies.length === 5 ? 'five-charts' :
+              strategies.length === 6 ? 'six-charts' :
+              'many-charts'
+            }`}>
+              {strategies.length === 5 ? (
+                // 5张图使用特殊的flex布局
+                <div className="five-charts-container">
+                  {strategies.map((strategy, index) => (
+                    <div className="five-charts-item" key={strategy.symbol || index}>
+                      <Card
+                        title={
+                          <div className="chart-title">
+                            <Space>
+                              <Text strong>{strategy.symbol}</Text>
+                              <Tag color={strategy.type === '兜底区' ? 'green' : 'orange'}>
+                                {strategy.type}
+                              </Tag>
+                              <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
+                            </Space>
+                          </div>
+                        }
+                        size="small"
+                        className="chart-card"
+                      >
+                        <div className="chart-container">
+                          <PriceChart
+                            input={convertToStrategyInput(strategy)}
+                            compact={true}
+                          />
+                        </div>
+                      </Card>
                     </div>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+                  ))}
+                </div>
+              ) : (
+                // 其他数量使用Row/Col布局
+                <Row gutter={[16, 16]}>
+                  {strategies.map((strategy, index) => {
+                    const responsiveSpan = getResponsiveSpan(strategies.length);
+                    return (
+                      <Col {...responsiveSpan} key={strategy.symbol || index}>
+                        <Card
+                          title={
+                            <div className="chart-title">
+                              <Space>
+                                <Text strong>{strategy.symbol}</Text>
+                                <Tag color={strategy.type === '兜底区' ? 'green' : 'orange'}>
+                                  {strategy.type}
+                                </Tag>
+                                <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
+                              </Space>
+                            </div>
+                          }
+                          size="small"
+                          className="chart-card"
+                        >
+                          <div className="chart-container">
+                            <PriceChart
+                              input={convertToStrategyInput(strategy)}
+                              compact={true}
+                            />
+                          </div>
+                        </Card>
+                      </Col>
+                    );
+                  })}
+                </Row>
+              )}
+            </div>
 
 
           </>
