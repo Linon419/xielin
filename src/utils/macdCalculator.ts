@@ -55,7 +55,10 @@ export function calculateMACD(
   slowPeriod: number = 26,
   signalPeriod: number = 9
 ): MACDData[] {
+  console.log(`MACD计算: 输入数据${ohlcvData.length}个，需要${slowPeriod + signalPeriod}个`);
+
   if (ohlcvData.length < slowPeriod + signalPeriod) {
+    console.log(`MACD计算: 数据不足，返回空数组`);
     return [];
   }
 

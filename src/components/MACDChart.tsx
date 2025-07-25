@@ -23,9 +23,19 @@ interface MACDChartProps {
 const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = false }) => {
   // 计算MACD数据
   const macdData = useMemo(() => {
-    if (ohlcvData.length < 35) return []; // 需要足够的数据点
-    return calculateMACD(ohlcvData);
-  }, [ohlcvData]);
+    // 降低数据要求：26(慢线) + 9(信号线) = 35，但我们可以用更少的数据
+    const minRequired = 30; // 降低要求
+    if (ohlcvData.length < minRequired) {
+      console.log(`MACD: ${symbol} - 数据不足，需要${minRequired}个数据点，当前只有${ohlcvData.length}个`);
+      return [];
+    }
+    const result = calculateMACD(ohlcvData);
+    console.log(`MACD: ${symbol} - 计算完成，生成${result.length}个MACD数据点`);
+    if (result.length > 0) {
+      console.log(`MACD: ${symbol} - 最新数据:`, result[result.length - 1]);
+    }
+    return result;
+  }, [ohlcvData, symbol]);
 
   // 分析MACD信号
   const analysis = useMemo(() => {
@@ -49,13 +59,24 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
 
   // 构建ECharts配置
   const chartOption = useMemo(() => {
-    if (macdData.length === 0) return {};
+    if (macdData.length === 0) {
+      console.log(`MACD Chart: ${symbol} - 没有MACD数据，返回空配置`);
+      return {};
+    }
+
+    console.log(`MACD Chart: ${symbol} - 构建图表配置，数据点数量: ${macdData.length}`);
 
     // 准备数据
     const timestamps = macdData.map(item => item.timestamp);
     const macdLine = macdData.map(item => [item.timestamp, item.macd]);
     const signalLine = macdData.map(item => [item.timestamp, item.signal]);
     const histogramData = macdData.map(item => [item.timestamp, item.histogram]);
+
+    console.log(`MACD Chart: ${symbol} - 数据范围:`, {
+      macdRange: [Math.min(...macdLine.map(d => d[1])), Math.max(...macdLine.map(d => d[1]))],
+      signalRange: [Math.min(...signalLine.map(d => d[1])), Math.max(...signalLine.map(d => d[1]))],
+      histogramRange: [Math.min(...histogramData.map(d => d[1])), Math.max(...histogramData.map(d => d[1]))]
+    });
 
     return {
       animation: false,
@@ -192,7 +213,7 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
           height: '250px',
           color: '#8c8c8c'
         }}>
-          数据不足，无法计算MACD指标
+          数据不足，无法计算MACD指标（需要至少30个数据点，当前：{ohlcvData.length}个）
         </div>
       </Card>
     );
