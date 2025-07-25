@@ -224,8 +224,10 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.execute('''
-                SELECT id, username, email, password_hash, salt, is_active, preferences, created_at, last_login, avatar_url,
-                       telegram_chat_id, telegram_enabled
+                SELECT id, username, email, password_hash, salt, is_active, preferences,
+                       datetime(created_at, 'localtime') as created_at,
+                       datetime(last_login, 'localtime') as last_login,
+                       avatar_url, telegram_chat_id, telegram_enabled
                 FROM users
                 WHERE (username = ? OR email = ?) AND is_active = 1
             ''', (username, username))
@@ -268,8 +270,10 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.execute('''
-                SELECT id, username, email, created_at, last_login, avatar_url, preferences,
-                       telegram_chat_id, telegram_enabled
+                SELECT id, username, email,
+                       datetime(created_at, 'localtime') as created_at,
+                       datetime(last_login, 'localtime') as last_login,
+                       avatar_url, preferences, telegram_chat_id, telegram_enabled
                 FROM users
                 WHERE id = ? AND is_active = 1
             ''', (user_id,))
@@ -339,7 +343,12 @@ class Database:
             params.extend([limit, offset])
 
             cursor = conn.execute(f'''
-                SELECT m.*, um.is_read, um.read_at, um.created_at as received_at
+                SELECT m.id, m.title, m.content, m.message_type, m.symbol, m.priority, m.data,
+                       datetime(m.created_at, 'localtime') as created_at,
+                       datetime(m.expires_at, 'localtime') as expires_at,
+                       m.is_global, um.is_read,
+                       datetime(um.read_at, 'localtime') as read_at,
+                       datetime(um.created_at, 'localtime') as received_at
                 FROM messages m
                 JOIN user_messages um ON m.id = um.message_id
                 WHERE {where_clause}
@@ -408,7 +417,9 @@ class Database:
         try:
             cursor = conn.execute('''
                 SELECT symbol, is_enabled, alert_settings, volume_alert_enabled,
-                       volume_threshold, volume_timeframe, created_at, updated_at
+                       volume_threshold, volume_timeframe,
+                       datetime(created_at, 'localtime') as created_at,
+                       datetime(updated_at, 'localtime') as updated_at
                 FROM user_subscriptions
                 WHERE user_id = ?
                 ORDER BY symbol

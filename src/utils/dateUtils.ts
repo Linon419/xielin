@@ -9,9 +9,42 @@
  */
 export function formatDistanceToNow(date: string | Date): string {
   const now = new Date();
-  const targetDate = typeof date === 'string' ? new Date(date) : date;
+  let targetDate: Date;
+
+  if (typeof date === 'string') {
+    // 处理不同的日期字符串格式
+    if (date.includes('T') && !date.endsWith('Z')) {
+      // 如果是ISO格式但没有时区标识，假设是本地时间
+      targetDate = new Date(date);
+    } else if (date.includes(' ') && !date.includes('T')) {
+      // 如果是 "YYYY-MM-DD HH:mm:ss" 格式，假设是本地时间
+      targetDate = new Date(date.replace(' ', 'T'));
+    } else {
+      // 其他格式直接解析
+      targetDate = new Date(date);
+    }
+  } else {
+    targetDate = date;
+  }
+
+  // 检查日期是否有效
+  if (isNaN(targetDate.getTime())) {
+    console.warn('Invalid date provided to formatDistanceToNow:', date);
+    return '时间未知';
+  }
+
   const diffInMs = now.getTime() - targetDate.getTime();
-  
+
+  // 如果时间差为负数（未来时间），可能是时区问题
+  if (diffInMs < 0) {
+    console.warn('Future date detected, possible timezone issue:', {
+      now: now.toISOString(),
+      target: targetDate.toISOString(),
+      original: date
+    });
+    return '刚刚';
+  }
+
   // 转换为秒、分钟、小时、天
   const diffInSeconds = Math.floor(diffInMs / 1000);
   const diffInMinutes = Math.floor(diffInSeconds / 60);
