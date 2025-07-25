@@ -19,6 +19,11 @@ COPY . ./
 # 清理不需要的文件
 RUN rm -rf backend-example .git .github
 
+# 确保public目录存在并包含必要文件
+RUN echo "=== 检查public目录 ===" && ls -la public/ || echo "public目录不存在"
+RUN test -f public/index.html || (echo "创建index.html" && mkdir -p public && echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><link rel="icon" href="%PUBLIC_URL%/favicon.ico" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Crypto Platform</title></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>' > public/index.html)
+RUN test -f public/manifest.json || (echo "创建manifest.json" && echo '{"short_name": "Crypto Platform","name": "Cryptocurrency Trading Platform","icons": [],"start_url": ".","display": "standalone","theme_color": "#000000","background_color": "#ffffff"}' > public/manifest.json)
+
 # 设置构建环境变量
 ENV GENERATE_SOURCEMAP=false
 ENV CI=false
