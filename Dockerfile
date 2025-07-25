@@ -7,18 +7,32 @@ WORKDIR /app
 # 复制前端package文件
 COPY package*.json ./
 
-# 安装前端依赖
-RUN npm ci --only=production
+# 安装前端依赖（包括开发依赖，构建需要）
+RUN npm ci
 
 # 复制所有前端文件
 COPY . ./
 
-# 清理不需要的文件
-RUN rm -rf node_modules backend-example .git
+# 清理不需要的文件（保留node_modules用于构建）
+RUN rm -rf backend-example .git
 
 # 创建生产环境变量文件
 RUN echo "REACT_APP_API_BASE_URL=/api" > .env.production
 RUN echo "REACT_APP_APP_NAME=加密货币合约谢林点交易策略平台" >> .env.production
+
+# 设置构建环境变量
+ENV GENERATE_SOURCEMAP=false
+ENV CI=false
+ENV NODE_ENV=production
+
+# 验证npm和node版本
+RUN node --version && npm --version
+
+# 检查package.json和依赖
+RUN ls -la && cat package.json | grep -A 10 '"scripts"'
+
+# 检查node_modules是否存在
+RUN ls -la node_modules | head -10
 
 # 构建前端应用
 RUN npm run build
