@@ -552,8 +552,24 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                         maxWidth: '50%'
                       }}
                     >
-                      <Card
-                        title={
+                      <div className="strategy-chart-container" style={{
+                        border: '1px solid #f0f0f0',
+                        borderRadius: '8px',
+                        backgroundColor: '#fff',
+                        padding: '12px',
+                        height: '100%',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                        transition: 'box-shadow 0.3s ease'
+                      }}>
+                        {/* 标题栏 */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '12px',
+                          paddingBottom: '8px',
+                          borderBottom: '1px solid #f0f0f0'
+                        }}>
                           <div className="chart-title">
                             <Space>
                               <Text strong>{strategy.symbol}</Text>
@@ -563,26 +579,23 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                               <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
                             </Space>
                           </div>
-                        }
-                        extra={
-                          strategy.symbol ? (
+                          {strategy.symbol && (
                             <SubscribeButton
                               symbol={strategy.symbol}
                               size="small"
                               type="primary"
                             />
-                          ) : null
-                        }
-                        size="small"
-                        className="chart-card"
-                      >
-                        <div className="chart-container">
+                          )}
+                        </div>
+
+                        {/* 图表内容 */}
+                        <div className="chart-container" style={{ height: 'calc(100% - 60px)' }}>
                           <PriceChart
                             input={convertToStrategyInput(strategy)}
                             compact={true}
                           />
                         </div>
-                      </Card>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -596,8 +609,24 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                     const responsiveSpan = getResponsiveSpan(strategies.length);
                     return (
                       <Col {...responsiveSpan} key={strategy.symbol || index}>
-                        <Card
-                          title={
+                        <div className="strategy-chart-container" style={{
+                          border: '1px solid #f0f0f0',
+                          borderRadius: '8px',
+                          backgroundColor: '#fff',
+                          padding: '12px',
+                          height: '100%',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                          transition: 'box-shadow 0.3s ease'
+                        }}>
+                          {/* 标题栏 */}
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '12px',
+                            paddingBottom: '8px',
+                            borderBottom: '1px solid #f0f0f0'
+                          }}>
                             <div className="chart-title">
                               <Space>
                                 <Text strong>{strategy.symbol}</Text>
@@ -607,26 +636,23 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                                 <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
                               </Space>
                             </div>
-                          }
-                          extra={
-                            strategy.symbol ? (
+                            {strategy.symbol && (
                               <SubscribeButton
                                 symbol={strategy.symbol}
                                 size="small"
                                 type="primary"
                               />
-                            ) : null
-                          }
-                          size="small"
-                          className="chart-card"
-                        >
-                          <div className="chart-container">
+                            )}
+                          </div>
+
+                          {/* 图表内容 */}
+                          <div className="chart-container" style={{ height: 'calc(100% - 60px)' }}>
                             <PriceChart
                               input={convertToStrategyInput(strategy)}
                               compact={true}
                             />
                           </div>
-                        </Card>
+                        </div>
                       </Col>
                     );
                   })}

@@ -277,17 +277,12 @@ body {
   height: auto !important;
   overflow: visible !important;
   position: relative !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.3s ease;
 }
 
-.macd-chart-container .ant-card {
-  overflow: visible !important;
-  height: auto !important;
-}
-
-.macd-chart-container .ant-card-body {
-  overflow: visible !important;
-  height: auto !important;
-  padding: 16px !important;
+.macd-chart-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .macd-chart-wrapper {
@@ -299,6 +294,7 @@ body {
   background: #fff !important;
   border: 1px solid #f0f0f0 !important;
   border-radius: 4px !important;
+  margin-top: 8px;
 }
 
 .macd-chart-wrapper .echarts-for-react {
@@ -312,6 +308,37 @@ body {
   display: block !important;
   width: 100% !important;
   height: 100% !important;
+}
+
+/* 策略图表容器样式 */
+.strategy-chart-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 400px !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.strategy-chart-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.strategy-chart-container .chart-container {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.strategy-chart-container .chart-title {
+  font-weight: 600;
+  color: #262626;
+}
+
+.strategy-chart-container .ant-tag {
+  margin: 0 4px;
+  font-size: 12px;
+  border-radius: 4px;
 }
 
 /* 打印样式 */
