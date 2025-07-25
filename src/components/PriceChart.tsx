@@ -4,7 +4,7 @@ import { PlayCircleOutlined, PauseCircleOutlined, SyncOutlined, SoundOutlined, B
 import ReactECharts from 'echarts-for-react';
 import { StrategyInput } from '../types/strategy';
 import { contractDataService, OHLCVData } from '../services/contractDataService';
-import MACDChart from './MACDChart';
+import { calculateMACD } from '../utils/macdCalculator';
 
 interface PriceChartProps {
   input: StrategyInput;
@@ -255,6 +255,12 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
       item.timestamp,
       item.volume
     ]);
+
+    // 计算MACD数据
+    const macdData = historicalData.length >= 30 ? calculateMACD(historicalData) : [];
+    const macdLine = macdData.map(item => [item.timestamp, item.macd]);
+    const signalLine = macdData.map(item => [item.timestamp, item.signal]);
+    const histogramData = macdData.map(item => [item.timestamp, item.histogram]);
     
     // 获取当前时间周期的标签
     const currentTimeframeOption = timeframeOptions.find(opt => opt.value === timeframe);
@@ -333,32 +339,52 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
         }
       },
       grid: compact ? [
+        // 价格图表区域
         {
           left: '8%',
           right: '8%',
           top: '12%',
-          height: '65%',
+          height: '45%',
           containLabel: true
         },
+        // 成交量区域
         {
           left: '8%',
           right: '8%',
-          top: '82%',
-          height: '15%',
+          top: '62%',
+          height: '12%',
+          containLabel: true
+        },
+        // MACD区域
+        {
+          left: '8%',
+          right: '8%',
+          top: '78%',
+          height: '18%',
           containLabel: true
         }
       ] : [
+        // 价格图表区域
         {
           left: '3%',
           right: '4%',
           top: '15%',
-          height: '60%',
+          height: '45%',
           containLabel: true
         },
+        // 成交量区域
         {
           left: '3%',
           right: '4%',
-          top: '80%',
+          top: '65%',
+          height: '12%',
+          containLabel: true
+        },
+        // MACD区域
+        {
+          left: '3%',
+          right: '4%',
+          top: '82%',
           height: '15%',
           containLabel: true
         }
@@ -377,6 +403,16 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
         {
           type: 'time',
           gridIndex: 1,
+          axisLabel: {
+            show: false
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        {
+          type: 'time',
+          gridIndex: 2,
           axisLabel: {
             fontSize: compact ? 11 : 10,
             formatter: function (value: number) {
@@ -402,6 +438,16 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
         {
           type: 'time',
           gridIndex: 1,
+          axisLabel: {
+            show: false
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        {
+          type: 'time',
+          gridIndex: 2,
           name: '时间',
           nameLocation: 'middle',
           nameGap: 25,
@@ -472,6 +518,17 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
               return value.toString();
             }
           }
+        },
+        {
+          type: 'value',
+          scale: true,
+          gridIndex: 2,
+          axisLabel: {
+            fontSize: compact ? 10 : 9,
+            formatter: function (value: number) {
+              return value.toFixed(4);
+            }
+          }
         }
       ] : [
         {
@@ -495,6 +552,19 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
               if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
               if (value >= 1e3) return (value / 1e3).toFixed(1) + 'K';
               return value.toString();
+            }
+          }
+        },
+        {
+          type: 'value',
+          name: 'MACD',
+          nameLocation: 'middle',
+          nameGap: 30,
+          scale: true,
+          gridIndex: 2,
+          axisLabel: {
+            formatter: function (value: number) {
+              return value.toFixed(4);
             }
           }
         }
@@ -548,7 +618,51 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
               return '#1890ff80';
             }
           }
-        }
+        },
+        // MACD系列
+        ...(macdData.length > 0 ? [
+          {
+            name: 'MACD',
+            type: 'line',
+            data: macdLine,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            lineStyle: {
+              color: '#1890ff',
+              width: 1
+            },
+            symbol: 'none',
+            smooth: false
+          },
+          {
+            name: 'Signal',
+            type: 'line',
+            data: signalLine,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            lineStyle: {
+              color: '#ff4d4f',
+              width: 1
+            },
+            symbol: 'none',
+            smooth: false
+          },
+          {
+            name: 'Histogram',
+            type: 'bar',
+            data: histogramData,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            itemStyle: {
+              color: (params: any) => {
+                const value = params.value[1];
+                return value >= 0 ? '#52c41a' : '#ff4d4f';
+              },
+              opacity: 0.6
+            },
+            barWidth: '60%'
+          }
+        ] : [])
       ] : [
         {
           name: '价格',
@@ -618,7 +732,68 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
               }
             }
           }
-        }
+        },
+        // MACD系列
+        ...(macdData.length > 0 ? [
+          {
+            name: 'MACD',
+            type: 'line',
+            data: macdLine,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            lineStyle: {
+              color: '#1890ff',
+              width: 2
+            },
+            symbol: 'none',
+            smooth: false
+          },
+          {
+            name: 'Signal',
+            type: 'line',
+            data: signalLine,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            lineStyle: {
+              color: '#ff4d4f',
+              width: 2
+            },
+            symbol: 'none',
+            smooth: false
+          },
+          {
+            name: 'Histogram',
+            type: 'bar',
+            data: histogramData,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            itemStyle: {
+              color: (params: any) => {
+                const value = params.value[1];
+                return value >= 0 ? '#52c41a' : '#ff4d4f';
+              },
+              opacity: 0.8
+            },
+            barWidth: '60%'
+          },
+          // 零线参考
+          {
+            name: '零线',
+            type: 'line',
+            data: macdLine.map(item => [item[0], 0]),
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            lineStyle: {
+              color: '#666666',
+              width: 1,
+              type: 'dashed',
+              opacity: 0.5
+            },
+            symbol: 'none',
+            silent: true,
+            z: 1
+          }
+        ] : [])
       ]
     };
   }, [input, historicalData, timeframe, compact, realTimeEnabled]);
@@ -693,21 +868,11 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
 
         <ReactECharts
           option={chartOption}
-          style={{ height: compact ? '450px' : '320px' }}
+          style={{ height: compact ? '550px' : '420px' }}
           opts={{ renderer: 'canvas' }}
         />
 
-        {/* MACD指标 */}
-        {historicalData.length > 35 && (
-          <div style={{ marginTop: 8 }}>
-            <MACDChart
-              ohlcvData={historicalData}
-              symbol={input.symbol}
-              compact={true}
-              timeframe={timeframe}
-            />
-          </div>
-        )}
+
 
         {/* 紧凑模式成交量通知历史 */}
         {volumeNotificationEnabled && volumeAlerts.length > 0 && (
@@ -836,21 +1001,11 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
 
       <ReactECharts
         option={chartOption}
-        style={{ height: '300px' }}
+        style={{ height: '450px' }}
         opts={{ renderer: 'canvas' }}
       />
 
-      {/* MACD指标 */}
-      {historicalData.length > 35 && (
-        <div style={{ marginTop: 16 }}>
-          <MACDChart
-            ohlcvData={historicalData}
-            symbol={input.symbol}
-            compact={false}
-            timeframe={timeframe}
-          />
-        </div>
-      )}
+
 
       <div style={{ marginTop: 16, padding: '12px', background: '#f5f5f5', borderRadius: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
