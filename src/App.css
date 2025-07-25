@@ -271,6 +271,49 @@ body {
   background: #a8a8a8;
 }
 
+/* MACD图表专用样式 */
+.macd-chart-container {
+  width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.macd-chart-container .ant-card {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+.macd-chart-container .ant-card-body {
+  overflow: visible !important;
+  height: auto !important;
+  padding: 16px !important;
+}
+
+.macd-chart-wrapper {
+  width: 100% !important;
+  height: 300px !important;
+  min-height: 300px !important;
+  position: relative !important;
+  overflow: visible !important;
+  background: #fff !important;
+  border: 1px solid #f0f0f0 !important;
+  border-radius: 4px !important;
+}
+
+.macd-chart-wrapper .echarts-for-react {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  position: relative !important;
+}
+
+.macd-chart-wrapper canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* 打印样式 */
 @media print {
   .app-header,
@@ -278,15 +321,15 @@ body {
   .ant-back-top {
     display: none;
   }
-  
+
   .app-content {
     padding: 0;
   }
-  
+
   .strategy-form-card {
     display: none;
   }
-  
+
   .ant-col-lg-16 {
     width: 100% !important;
   }

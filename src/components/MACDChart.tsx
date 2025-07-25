@@ -287,30 +287,40 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
   }
 
   return (
-    <Card
-      title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: compact ? '14px' : '16px' }}>
-            {symbol} MACD指标
-          </span>
-          {analysis && (
-            <Space size="small">
-              {getSignalIcon(analysis.signalType)}
-              <Tag color={getSignalColor(analysis.signalType)}>
-                {analysis.signalType === 'BUY' ? '金叉' :
-                 analysis.signalType === 'SELL' ? '死叉' : '观望'}
-              </Tag>
-              <Tag color={analysis.trend === 'BULLISH' ? 'green' :
-                         analysis.trend === 'BEARISH' ? 'red' : 'default'}>
-                {analysis.trend === 'BULLISH' ? '看涨' :
-                 analysis.trend === 'BEARISH' ? '看跌' : '中性'}
-              </Tag>
-            </Space>
-          )}
-        </div>
-      }
-      size={compact ? 'small' : 'default'}
-      style={{ minHeight: compact ? '380px' : '450px' }}
+    <div className="macd-chart-container">
+      <Card
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: compact ? '14px' : '16px' }}>
+              {symbol} MACD指标
+            </span>
+            {analysis && (
+              <Space size="small">
+                {getSignalIcon(analysis.signalType)}
+                <Tag color={getSignalColor(analysis.signalType)}>
+                  {analysis.signalType === 'BUY' ? '金叉' :
+                   analysis.signalType === 'SELL' ? '死叉' : '观望'}
+                </Tag>
+                <Tag color={analysis.trend === 'BULLISH' ? 'green' :
+                           analysis.trend === 'BEARISH' ? 'red' : 'default'}>
+                  {analysis.trend === 'BULLISH' ? '看涨' :
+                   analysis.trend === 'BEARISH' ? '看跌' : '中性'}
+                </Tag>
+              </Space>
+            )}
+          </div>
+        }
+        size={compact ? 'small' : 'default'}
+        style={{
+          minHeight: compact ? '380px' : '450px',
+          height: 'auto',
+          overflow: 'visible'
+        }}
+        bodyStyle={{
+          padding: compact ? '12px' : '16px',
+          height: 'auto',
+          overflow: 'visible'
+        }}
       extra={
         !compact && tradingAdvice && (
           <Tooltip title={tradingAdvice.reason}>
@@ -361,29 +371,27 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
       )}
 
       {/* MACD图表 */}
-      <div style={{
-        width: '100%',
-        height: compact ? '300px' : '350px',
-        border: '1px solid #f0f0f0',
-        borderRadius: '4px'
-      }}>
+      <div className="macd-chart-wrapper">
         <ReactECharts
           option={chartOption}
           style={{
             width: '100%',
             height: '100%',
-            minHeight: compact ? '300px' : '350px'
+            minHeight: compact ? '300px' : '350px',
+            display: 'block'
           }}
           opts={{
             renderer: 'canvas',
             width: 'auto',
-            height: 'auto'
+            height: 'auto',
+            devicePixelRatio: window.devicePixelRatio || 1
           }}
           onChartReady={(chart: any) => {
             console.log(`MACD Chart: ${symbol} - 图表渲染完成`, chart);
-            // 强制重新渲染
+            // 强制重新渲染和调整大小
             setTimeout(() => {
               chart.resize();
+              console.log(`MACD Chart: ${symbol} - 图表大小调整完成`);
             }, 100);
           }}
           onEvents={{
@@ -394,6 +402,7 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
         />
       </div>
     </Card>
+    </div>
   );
 };
 
