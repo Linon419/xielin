@@ -1,44 +1,27 @@
-# 合并的前后端Dockerfile - 支持ARM64架构
-FROM --platform=linux/arm64 node:18-alpine AS frontend-builder
+# 多阶段构建 Dockerfile
 
-# 设置工作目录
+# 阶段 1: 构建前端
+FROM node:18-alpine AS frontend-builder
 WORKDIR /app
 
-# 复制前端package文件
+# 复制前端文件
 COPY package*.json ./
-
-# 安装前端依赖（包括开发依赖，构建需要）
-RUN npm ci
-
-# 复制所有前端文件
-COPY . ./
-
-# 清理不需要的文件（保留node_modules用于构建）
-RUN rm -rf backend-example .git
-
-# 创建生产环境变量文件
-RUN echo "REACT_APP_API_BASE_URL=/api" > .env.production
-RUN echo "REACT_APP_APP_NAME=加密货币合约谢林点交易策略平台" >> .env.production
+COPY public/ ./public/
+COPY src/ ./src/
+COPY tsconfig.json ./
 
 # 设置构建环境变量
 ENV GENERATE_SOURCEMAP=false
 ENV CI=false
 ENV NODE_ENV=production
 
-# 验证npm和node版本
-RUN node --version && npm --version
-
-# 检查package.json和依赖
-RUN ls -la && cat package.json | grep -A 10 '"scripts"'
-
-# 检查node_modules是否存在
-RUN ls -la node_modules | head -10
-
-# 构建前端应用
+# 安装依赖并构建前端
+RUN npm install
 RUN npm run build
 
-# 生产阶段 - Python + Nginx
-FROM --platform=linux/arm64 python:3.11-slim
+# 阶段 2: 设置Python API服务器
+FROM python:3.11-slim
+WORKDIR /app
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
@@ -48,23 +31,23 @@ RUN apt-get update && apt-get install -y \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
-# 设置工作目录
-WORKDIR /app
-
 # 设置Python环境变量
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
-
-# 复制后端requirements并安装Python依赖
-COPY backend-example/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+ENV NODE_ENV=production
 
 # 复制后端代码
 COPY backend-example/ ./
 
-# 从前端构建阶段复制构建结果
-COPY --from=frontend-builder /app/build /var/www/html
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 创建前端文件目录
+RUN mkdir -p /var/www/html
+
+# 从前一阶段复制构建好的前端文件
+COPY --from=frontend-builder /app/build/ /var/www/html/
 
 # 复制nginx配置
 COPY nginx-combined.conf /etc/nginx/sites-available/default

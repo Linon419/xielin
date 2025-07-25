@@ -1,0 +1,32 @@
+# 最简单的构建测试Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# 复制package文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm install
+
+# 复制源代码
+COPY . ./
+
+# 设置环境变量
+ENV GENERATE_SOURCEMAP=false
+ENV CI=false
+
+# 测试构建命令
+RUN echo "Testing build process..."
+RUN node --version
+RUN npm --version
+RUN ls -la
+RUN cat package.json | grep '"build"'
+
+# 尝试构建
+RUN npm run build
+
+# 检查构建结果
+RUN ls -la build/
+
+CMD ["echo", "Build test completed"]
