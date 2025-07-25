@@ -13,11 +13,14 @@ COPY package*.json ./
 # 安装依赖
 RUN npm ci
 
-# 明确复制前端文件（避免目录复制问题）
+# 创建public目录并生成必要文件（不依赖外部public目录）
 RUN mkdir -p public src
 
-# 复制public目录的所有文件
-COPY public/ public/
+# 创建React所需的index.html（单行方式）
+RUN echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><link rel="icon" href="%PUBLIC_URL%/favicon.ico" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="theme-color" content="#000000" /><meta name="description" content="Cryptocurrency Trading Platform" /><title>Crypto Platform</title></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>' > public/index.html
+
+# 创建manifest.json（单行方式）
+RUN echo '{"short_name": "Crypto Platform","name": "Cryptocurrency Trading Platform","icons": [],"start_url": ".","display": "standalone","theme_color": "#000000","background_color": "#ffffff"}' > public/manifest.json
 
 # 复制src目录
 COPY src/ src/
