@@ -447,9 +447,9 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                       </Space>
                     }
                     size="small"
-                    style={{ height: '580px' }}
+                    style={{ height: '650px' }}
                   >
-                    <div style={{ height: '500px', overflow: 'hidden' }}>
+                    <div style={{ height: '570px', overflow: 'hidden' }}>
                       <PriceChart
                         input={convertToStrategyInput(strategy)}
                         compact={true}

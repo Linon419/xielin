@@ -271,11 +271,11 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
         subtext: subtitleText,
         left: 'center',
         textStyle: {
-          fontSize: 16,
+          fontSize: compact ? 18 : 16,
           fontWeight: 'bold'
         },
         subtextStyle: {
-          fontSize: 12,
+          fontSize: compact ? 14 : 12,
           color: realTimeEnabled ? '#1890ff' : '#666'
         }
       },
@@ -335,15 +335,15 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
         {
           left: '8%',
           right: '8%',
-          top: '15%',
-          height: '55%',
+          top: '12%',
+          height: '65%',
           containLabel: true
         },
         {
           left: '8%',
           right: '8%',
-          top: '75%',
-          height: '20%',
+          top: '82%',
+          height: '15%',
           containLabel: true
         }
       ] : [
@@ -377,7 +377,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
           type: 'time',
           gridIndex: 1,
           axisLabel: {
-            fontSize: 10,
+            fontSize: compact ? 11 : 10,
             formatter: function (value: number) {
               const date = new Date(value);
               return date.toLocaleTimeString('zh-CN', {
@@ -452,7 +452,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
           scale: true,
           gridIndex: 0,
           axisLabel: {
-            fontSize: 10,
+            fontSize: compact ? 11 : 10,
             formatter: function (value: number) {
               return value.toFixed(4);
             }
@@ -463,7 +463,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
           scale: true,
           gridIndex: 1,
           axisLabel: {
-            fontSize: 9,
+            fontSize: compact ? 10 : 9,
             formatter: function (value: number) {
               if (value >= 1e9) return (value / 1e9).toFixed(1) + 'B';
               if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
@@ -692,7 +692,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
 
         <ReactECharts
           option={chartOption}
-          style={{ height: '320px' }}
+          style={{ height: compact ? '450px' : '320px' }}
           opts={{ renderer: 'canvas' }}
         />
 
