@@ -16,10 +16,8 @@ RUN npm ci
 # 明确复制前端文件（避免目录复制问题）
 RUN mkdir -p public src
 
-# 复制public文件
-COPY public/index.html public/
-COPY public/manifest.json public/
-COPY public/favicon.ico public/ || echo "favicon.ico not found, continuing..."
+# 复制public目录的所有文件
+COPY public/ public/
 
 # 复制src目录
 COPY src/ src/
