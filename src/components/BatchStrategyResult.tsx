@@ -37,7 +37,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyOutput | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // 根据图表数量计算自适应列宽
+  // 根据图表数量计算自适应列宽和间距
   const getResponsiveSpan = (totalCount: number) => {
     if (totalCount === 1) {
       return { xs: 24, sm: 24, md: 24, lg: 24, xl: 24 }; // 1张图占满屏幕
@@ -54,6 +54,19 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     } else {
       // 7张图及以上，使用固定布局
       return { xs: 24, sm: 12, md: 8, lg: 6, xl: 4 };
+    }
+  };
+
+  // 根据图表数量计算合适的间距
+  const getGutter = (totalCount: number): [number, number] => {
+    if (totalCount === 1) {
+      return [0, 0]; // 单图不需要间距
+    } else if (totalCount === 2) {
+      return [12, 16]; // 2张图用较小的水平间距
+    } else if (totalCount <= 4) {
+      return [16, 16]; // 3-4张图用标准间距
+    } else {
+      return [12, 12]; // 5张图及以上用较小间距，节省空间
     }
   };
 
@@ -506,7 +519,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                 </div>
               ) : (
                 // 其他数量使用Row/Col布局
-                <Row gutter={[16, 16]}>
+                <Row gutter={getGutter(strategies.length)}>
                   {strategies.map((strategy, index) => {
                     const responsiveSpan = getResponsiveSpan(strategies.length);
                     return (

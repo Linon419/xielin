@@ -71,22 +71,52 @@
   margin: 0 auto;
 }
 
-/* 2张图 - 并排显示 */
+/* 2张图 - 并排显示，精确50%宽度 */
 .two-charts .ant-col {
   display: flex;
   justify-content: center;
 }
 
-/* 3张图 - 三等分 */
+.two-charts .ant-row {
+  margin-left: -6px !important;
+  margin-right: -6px !important;
+}
+
+.two-charts .ant-col {
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+/* 3张图 - 三等分，精确33.33%宽度 */
 .three-charts .ant-col {
   display: flex;
   justify-content: center;
 }
 
-/* 4张图 - 四等分网格 */
+.three-charts .ant-row {
+  margin-left: -8px !important;
+  margin-right: -8px !important;
+}
+
+.three-charts .ant-col {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* 4张图 - 四等分网格，精确25%宽度 */
 .four-charts .ant-col {
   display: flex;
   justify-content: center;
+}
+
+.four-charts .ant-row {
+  margin-left: -8px !important;
+  margin-right: -8px !important;
+}
+
+.four-charts .ant-col {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
 }
 
 /* 6张图及以上 - 紧凑网格 */
