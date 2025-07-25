@@ -214,6 +214,28 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
     );
   }
 
+  // 检查chartOption是否为空
+  if (!chartOption || Object.keys(chartOption).length === 0) {
+    console.error(`MACD Chart: ${symbol} - chartOption为空！`, chartOption);
+    return (
+      <Card
+        title={`${symbol} MACD指标`}
+        size={compact ? 'small' : 'default'}
+        style={{ minHeight: compact ? '380px' : '450px' }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '250px',
+          color: '#ff4d4f'
+        }}>
+          图表配置错误，无法显示MACD指标
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
       title={
@@ -289,11 +311,38 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
       )}
 
       {/* MACD图表 */}
-      <ReactECharts
-        option={chartOption}
-        style={{ height: compact ? '300px' : '350px' }}
-        opts={{ renderer: 'canvas' }}
-      />
+      <div style={{
+        width: '100%',
+        height: compact ? '300px' : '350px',
+        border: '1px solid #f0f0f0',
+        borderRadius: '4px'
+      }}>
+        <ReactECharts
+          option={chartOption}
+          style={{
+            width: '100%',
+            height: '100%',
+            minHeight: compact ? '300px' : '350px'
+          }}
+          opts={{
+            renderer: 'canvas',
+            width: 'auto',
+            height: 'auto'
+          }}
+          onChartReady={(chart: any) => {
+            console.log(`MACD Chart: ${symbol} - 图表渲染完成`, chart);
+            // 强制重新渲染
+            setTimeout(() => {
+              chart.resize();
+            }, 100);
+          }}
+          onEvents={{
+            'finished': () => {
+              console.log(`MACD Chart: ${symbol} - 图表绘制完成`);
+            }
+          }}
+        />
+      </div>
     </Card>
   );
 };
