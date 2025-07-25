@@ -24,9 +24,18 @@ ENV GENERATE_SOURCEMAP=false
 ENV CI=false
 ENV NODE_ENV=production
 
-# 安装依赖并构建前端
+# 安装依赖
 RUN npm install
-RUN npm run build
+
+# 调试信息
+RUN echo "=== 检查文件结构 ===" && ls -la
+RUN echo "=== 检查src目录 ===" && ls -la src/ || echo "src目录不存在"
+RUN echo "=== 检查public目录 ===" && ls -la public/ || echo "public目录不存在"
+RUN echo "=== 检查package.json ===" && cat package.json | grep -A 5 '"scripts"'
+RUN echo "=== 检查node版本 ===" && node --version && npm --version
+
+# 构建前端（带详细输出）
+RUN npm run build --verbose
 
 # 阶段 2: 设置Python API服务器
 FROM python:3.11-slim

@@ -1,0 +1,69 @@
+# 调试版Dockerfile - 查找构建失败原因
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app
+
+# 复制package文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci --verbose
+
+# 复制所有文件
+COPY . .
+
+# 设置环境变量
+ENV GENERATE_SOURCEMAP=false
+ENV CI=false
+ENV NODE_ENV=production
+ENV SKIP_PREFLIGHT_CHECK=true
+
+# 调试信息
+RUN echo "=== Node/NPM版本 ===" && node --version && npm --version
+RUN echo "=== 工作目录内容 ===" && ls -la
+RUN echo "=== src目录 ===" && ls -la src/ | head -10
+RUN echo "=== public目录 ===" && ls -la public/ | head -10
+RUN echo "=== package.json scripts ===" && cat package.json | grep -A 10 '"scripts"'
+RUN echo "=== 检查依赖 ===" && npm list --depth=0 | head -20
+
+# 尝试构建，如果失败显示详细错误
+RUN npm run build 2>&1 || (echo "=== 构建失败，显示错误日志 ===" && cat npm-debug.log 2>/dev/null || echo "无debug日志")
+
+# 检查构建结果
+RUN echo "=== 构建结果 ===" && ls -la build/ 2>/dev/null || echo "build目录不存在"
+
+# 生产阶段
+FROM python:3.11-slim
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    nginx curl gcc supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python环境
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# 复制后端代码
+COPY backend-example/ ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制前端构建结果
+COPY --from=frontend-builder /app/build/ /var/www/html/
+
+# 复制配置
+COPY nginx-combined.conf /etc/nginx/sites-available/default
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 设置目录和权限
+RUN mkdir -p /var/log/supervisor /app/data /var/run/nginx && \
+    chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health && curl -f http://localhost/api/health || exit 1
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
