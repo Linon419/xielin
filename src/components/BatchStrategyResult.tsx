@@ -168,7 +168,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
             <SubscribeButton
               symbol={symbol}
               size="small"
-              type="text"
+              type="primary"
             />
           </Space>
           {record.warnings && record.warnings.length > 0 && (
@@ -564,6 +564,13 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                             </Space>
                           </div>
                         }
+                        extra={
+                          <SubscribeButton
+                            symbol={strategy.symbol}
+                            size="small"
+                            type="primary"
+                          />
+                        }
                         size="small"
                         className="chart-card"
                       >
@@ -598,6 +605,13 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                                 <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
                               </Space>
                             </div>
+                          }
+                          extra={
+                            <SubscribeButton
+                              symbol={strategy.symbol}
+                              size="small"
+                              type="primary"
+                            />
                           }
                           size="small"
                           className="chart-card"
