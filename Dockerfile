@@ -4,38 +4,31 @@
 FROM node:18-alpine AS frontend-builder
 WORKDIR /app
 
+# 增加Node.js内存限制
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # 复制前端package文件
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install
+RUN npm ci
 
-# 复制所有前端文件（避免单独复制可能不存在的目录）
+# 复制所有前端文件
 COPY . ./
 
 # 清理不需要的文件
-RUN rm -rf backend-example .git .github node_modules/.cache
-
-# 重新安装依赖（确保干净的node_modules）
-RUN npm install
+RUN rm -rf backend-example .git .github
 
 # 设置构建环境变量
 ENV GENERATE_SOURCEMAP=false
 ENV CI=false
 ENV NODE_ENV=production
 
-# 安装依赖
-RUN npm install
+# 构建前端
+RUN npm run build
 
-# 调试信息
-RUN echo "=== 检查文件结构 ===" && ls -la
-RUN echo "=== 检查src目录 ===" && ls -la src/ || echo "src目录不存在"
-RUN echo "=== 检查public目录 ===" && ls -la public/ || echo "public目录不存在"
-RUN echo "=== 检查package.json ===" && cat package.json | grep -A 5 '"scripts"'
-RUN echo "=== 检查node版本 ===" && node --version && npm --version
-
-# 构建前端（带详细输出）
-RUN npm run build --verbose
+# 验证构建结果
+RUN ls -la build/ && echo "Frontend build successful!"
 
 # 阶段 2: 设置Python API服务器
 FROM python:3.11-slim
