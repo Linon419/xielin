@@ -78,7 +78,7 @@ jobs:
 
   # 可选：自动部署到ARM服务器
   deploy:
-    needs: build-and-push
+    needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     
