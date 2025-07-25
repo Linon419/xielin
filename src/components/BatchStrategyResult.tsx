@@ -62,11 +62,11 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     if (totalCount === 1) {
       return [0, 0]; // 单图不需要间距
     } else if (totalCount === 2) {
-      return [12, 16]; // 2张图用较小的水平间距
+      return [8, 12]; // 2张图用更小的间距，充分利用空间
     } else if (totalCount <= 4) {
-      return [16, 16]; // 3-4张图用标准间距
+      return [12, 12]; // 3-4张图用较小间距
     } else {
-      return [12, 12]; // 5张图及以上用较小间距，节省空间
+      return [8, 8]; // 5张图及以上用最小间距，最大化利用空间
     }
   };
 
@@ -411,7 +411,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     >
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         {/* 统计概览 */}
-        <Row gutter={16}>
+        <Row gutter={12}>
           <Col span={4}>
             <Statistic
               title="总策略数"
@@ -540,7 +540,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                 // 2张图使用纯CSS Flexbox布局，避免Ant Design Grid问题
                 <div className="two-charts-flex-container" style={{
                   display: 'flex',
-                  gap: '12px',
+                  gap: '8px', // 减少间距，充分利用空间
                   width: '100%'
                 }}>
                   {strategies.map((strategy, index) => (

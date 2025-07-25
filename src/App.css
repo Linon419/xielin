@@ -44,15 +44,16 @@ body {
 }
 
 .content-wrapper {
-  max-width: 1400px;
+  max-width: 95vw; /* 使用视口宽度的95%，充分利用屏幕空间 */
   margin: 0 auto;
   padding: 24px;
+  min-width: 1200px; /* 设置最小宽度确保在小屏幕上不会太窄 */
 }
 
 /* 介绍区域 */
 .intro-section {
   background: white;
-  padding: 48px 24px;
+  padding: 32px 24px; /* 减少上下padding，节省垂直空间 */
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
@@ -339,6 +340,30 @@ body {
   margin: 0 4px;
   font-size: 12px;
   border-radius: 4px;
+}
+
+/* 优化空间利用 */
+@media (min-width: 1920px) {
+  .content-wrapper {
+    max-width: 98vw; /* 在大屏幕上使用更多空间 */
+    padding: 20px; /* 减少左右padding */
+  }
+}
+
+@media (min-width: 2560px) {
+  .content-wrapper {
+    max-width: 99vw; /* 在超大屏幕上几乎使用全部空间 */
+    padding: 16px;
+  }
+}
+
+/* 优化Flex布局的空间利用 */
+.two-charts-flex-container {
+  margin: 0 !important;
+}
+
+.two-charts-flex-container > div {
+  min-width: 0; /* 允许flex项目收缩到内容以下 */
 }
 
 /* 打印样式 */
