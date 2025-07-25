@@ -85,6 +85,14 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
       lastPoint: macdLine[macdLine.length - 1]
     });
 
+    // 检查数据格式
+    console.log(`MACD Chart: ${symbol} - 数据样本:`, {
+      macdSample: macdLine.slice(0, 3),
+      signalSample: signalLine.slice(0, 3),
+      histogramSample: histogramData.slice(0, 3),
+      timeRange: [new Date(macdLine[0][0]).toISOString(), new Date(macdLine[macdLine.length-1][0]).toISOString()]
+    });
+
     const config = {
       animation: false,
       backgroundColor: 'transparent',
@@ -118,6 +126,15 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
           lineStyle: {
             color: '#f0f0f0'
           }
+        },
+        // 强制设置Y轴范围，确保数据可见
+        min: (value: any) => {
+          const min = Math.min(...macdRange, ...signalRange, ...histogramRange);
+          return min * 1.1; // 留10%边距
+        },
+        max: (value: any) => {
+          const max = Math.max(...macdRange, ...signalRange, ...histogramRange);
+          return max * 1.1; // 留10%边距
         }
       },
       series: [
@@ -127,10 +144,16 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
           data: macdLine,
           lineStyle: {
             color: '#1890ff',
-            width: compact ? 1 : 2
+            width: 2, // 强制使用较粗的线条
+            opacity: 1
           },
           symbol: 'none',
-          smooth: false
+          smooth: false,
+          emphasis: {
+            lineStyle: {
+              width: 3
+            }
+          }
         },
         {
           name: 'Signal',
@@ -138,10 +161,16 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
           data: signalLine,
           lineStyle: {
             color: '#ff4d4f',
-            width: compact ? 1 : 2
+            width: 2, // 强制使用较粗的线条
+            opacity: 1
           },
           symbol: 'none',
-          smooth: false
+          smooth: false,
+          emphasis: {
+            lineStyle: {
+              width: 3
+            }
+          }
         },
         {
           name: 'Histogram',
@@ -151,9 +180,30 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
             color: (params: any) => {
               const value = params.value[1];
               return value >= 0 ? '#52c41a' : '#ff4d4f';
-            }
+            },
+            opacity: 0.8
           },
-          barWidth: compact ? '60%' : '80%'
+          barWidth: '60%',
+          emphasis: {
+            itemStyle: {
+              opacity: 1
+            }
+          }
+        },
+        // 添加零线参考
+        {
+          name: '零线',
+          type: 'line',
+          data: macdLine.map(item => [item[0], 0]),
+          lineStyle: {
+            color: '#666666',
+            width: 1,
+            type: 'dashed',
+            opacity: 0.5
+          },
+          symbol: 'none',
+          silent: true, // 不响应鼠标事件
+          z: 1 // 置于底层
         }
       ]
     };
