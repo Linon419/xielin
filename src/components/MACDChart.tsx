@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, Space, Tag, Tooltip, Typography } from 'antd';
-import { TrendingUpOutlined, TrendingDownOutlined, MinusOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ArrowDownOutlined, MinusOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import { OHLCVData } from '../services/contractDataService';
 import { 
@@ -60,10 +60,10 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
     return {
       animation: false,
       grid: {
-        left: compact ? '8%' : '10%',
+        left: compact ? '10%' : '10%',
         right: compact ? '8%' : '10%',
-        top: compact ? '15%' : '20%',
-        bottom: compact ? '15%' : '20%'
+        top: compact ? '10%' : '15%',
+        bottom: compact ? '20%' : '25%'
       },
       tooltip: {
         trigger: 'axis',
@@ -159,9 +159,9 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
   const getSignalIcon = (signalType: string) => {
     switch (signalType) {
       case 'BUY':
-        return <TrendingUpOutlined style={{ color: '#52c41a' }} />;
+        return <ArrowUpOutlined style={{ color: '#52c41a' }} />;
       case 'SELL':
-        return <TrendingDownOutlined style={{ color: '#ff4d4f' }} />;
+        return <ArrowDownOutlined style={{ color: '#ff4d4f' }} />;
       default:
         return <MinusOutlined style={{ color: '#8c8c8c' }} />;
     }
@@ -180,16 +180,16 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
 
   if (macdData.length === 0) {
     return (
-      <Card 
-        title={`${symbol} MACD指标`} 
+      <Card
+        title={`${symbol} MACD指标`}
         size={compact ? 'small' : 'default'}
-        style={{ height: compact ? '300px' : '400px' }}
+        style={{ minHeight: compact ? '380px' : '450px' }}
       >
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '200px',
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '250px',
           color: '#8c8c8c'
         }}>
           数据不足，无法计算MACD指标
@@ -208,13 +208,13 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
           {analysis && (
             <Space size="small">
               {getSignalIcon(analysis.signalType)}
-              <Tag color={getSignalColor(analysis.signalType)} size="small">
-                {analysis.signalType === 'BUY' ? '金叉' : 
+              <Tag color={getSignalColor(analysis.signalType)}>
+                {analysis.signalType === 'BUY' ? '金叉' :
                  analysis.signalType === 'SELL' ? '死叉' : '观望'}
               </Tag>
-              <Tag color={analysis.trend === 'BULLISH' ? 'green' : 
-                         analysis.trend === 'BEARISH' ? 'red' : 'default'} size="small">
-                {analysis.trend === 'BULLISH' ? '看涨' : 
+              <Tag color={analysis.trend === 'BULLISH' ? 'green' :
+                         analysis.trend === 'BEARISH' ? 'red' : 'default'}>
+                {analysis.trend === 'BULLISH' ? '看涨' :
                  analysis.trend === 'BEARISH' ? '看跌' : '中性'}
               </Tag>
             </Space>
@@ -222,6 +222,7 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
         </div>
       }
       size={compact ? 'small' : 'default'}
+      style={{ minHeight: compact ? '380px' : '450px' }}
       extra={
         !compact && tradingAdvice && (
           <Tooltip title={tradingAdvice.reason}>
@@ -236,30 +237,33 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
       }
     >
       {/* MACD数值显示 */}
-      {!compact && analysis && (
-        <div style={{ marginBottom: '12px', fontSize: '12px' }}>
-          <Space split={<span style={{ color: '#d9d9d9' }}>|</span>}>
+      {analysis && (
+        <div style={{
+          marginBottom: compact ? '8px' : '12px',
+          fontSize: compact ? '11px' : '12px'
+        }}>
+          <Space split={<span style={{ color: '#d9d9d9' }}>|</span>} size="small">
             <Text>
               MACD: <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {analysis.current.macd.toFixed(6)}
+                {analysis.current.macd.toFixed(compact ? 4 : 6)}
               </span>
             </Text>
             <Text>
               Signal: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
-                {analysis.current.signal.toFixed(6)}
+                {analysis.current.signal.toFixed(compact ? 4 : 6)}
               </span>
             </Text>
             <Text>
-              Histogram: <span style={{ 
-                color: analysis.current.histogram >= 0 ? '#52c41a' : '#ff4d4f', 
-                fontWeight: 'bold' 
+              Histogram: <span style={{
+                color: analysis.current.histogram >= 0 ? '#52c41a' : '#ff4d4f',
+                fontWeight: 'bold'
               }}>
-                {analysis.current.histogram.toFixed(6)}
+                {analysis.current.histogram.toFixed(compact ? 4 : 6)}
               </span>
             </Text>
-            {(divergence.bullishDivergence || divergence.bearishDivergence) && (
+            {!compact && (divergence.bullishDivergence || divergence.bearishDivergence) && (
               <Text>
-                <Tag color={divergence.bullishDivergence ? 'green' : 'red'} size="small">
+                <Tag color={divergence.bullishDivergence ? 'green' : 'red'}>
                   {divergence.bullishDivergence ? '看涨背离' : '看跌背离'}
                 </Tag>
               </Text>
@@ -271,7 +275,7 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
       {/* MACD图表 */}
       <ReactECharts
         option={chartOption}
-        style={{ height: compact ? '200px' : '280px' }}
+        style={{ height: compact ? '300px' : '350px' }}
         opts={{ renderer: 'canvas' }}
       />
     </Card>
