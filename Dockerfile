@@ -13,16 +13,22 @@ COPY package*.json ./
 # 安装依赖
 RUN npm ci
 
-# 复制所有前端文件
-COPY . ./
+# 明确复制前端文件（避免目录复制问题）
+RUN mkdir -p public src
 
-# 清理不需要的文件
-RUN rm -rf backend-example .git .github
+# 复制public文件
+COPY public/index.html public/
+COPY public/manifest.json public/
+COPY public/favicon.ico public/ || echo "favicon.ico not found, continuing..."
 
-# 确保public目录存在并包含必要文件
-RUN echo "=== 检查public目录 ===" && ls -la public/ || echo "public目录不存在"
-RUN test -f public/index.html || (echo "创建index.html" && mkdir -p public && echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><link rel="icon" href="%PUBLIC_URL%/favicon.ico" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Crypto Platform</title></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>' > public/index.html)
-RUN test -f public/manifest.json || (echo "创建manifest.json" && echo '{"short_name": "Crypto Platform","name": "Cryptocurrency Trading Platform","icons": [],"start_url": ".","display": "standalone","theme_color": "#000000","background_color": "#ffffff"}' > public/manifest.json)
+# 复制src目录
+COPY src/ src/
+
+# 复制其他必要文件
+COPY tsconfig.json ./
+
+# 验证关键文件存在
+RUN echo "=== 验证文件结构 ===" && ls -la public/ && echo "index.html exists: $(test -f public/index.html && echo 'YES' || echo 'NO')"
 
 # 设置构建环境变量
 ENV GENERATE_SOURCEMAP=false
