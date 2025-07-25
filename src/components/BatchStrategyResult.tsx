@@ -565,11 +565,13 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                           </div>
                         }
                         extra={
-                          <SubscribeButton
-                            symbol={strategy.symbol}
-                            size="small"
-                            type="primary"
-                          />
+                          strategy.symbol ? (
+                            <SubscribeButton
+                              symbol={strategy.symbol}
+                              size="small"
+                              type="primary"
+                            />
+                          ) : null
                         }
                         size="small"
                         className="chart-card"
@@ -607,11 +609,13 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                             </div>
                           }
                           extra={
-                            <SubscribeButton
-                              symbol={strategy.symbol}
-                              size="small"
-                              type="primary"
-                            />
+                            strategy.symbol ? (
+                              <SubscribeButton
+                                symbol={strategy.symbol}
+                                size="small"
+                                type="primary"
+                              />
+                            ) : null
                           }
                           size="small"
                           className="chart-card"
