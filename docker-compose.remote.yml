@@ -1,14 +1,9 @@
 version: '3.8'
 
 services:
-  # 合并的前后端服务
+  # 远程镜像版本 - 当GitHub Actions构建完成后使用
   xielin:
-    # 临时使用本地构建，直到GitHub Actions构建完成
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # 构建完成后可以切换回镜像：
-    # image: ghcr.io/linon419/xielin:latest
+    image: ghcr.io/linon419/xielin:latest
     container_name: xielin-app
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
@@ -21,12 +16,6 @@ services:
       - OKEX_PASSPHRASE=${OKEX_PASSPHRASE}
       - BYBIT_API_KEY=${BYBIT_API_KEY}
       - BYBIT_SECRET=${BYBIT_SECRET}
-      # 可以根据需要添加更多交易所
-      # - HUOBI_API_KEY=${HUOBI_API_KEY}
-      # - HUOBI_SECRET=${HUOBI_SECRET}
-      # - KUCOIN_API_KEY=${KUCOIN_API_KEY}
-      # - KUCOIN_SECRET=${KUCOIN_SECRET}
-      # - KUCOIN_PASSPHRASE=${KUCOIN_PASSPHRASE}
     volumes:
       - ./data:/app/data
       - ./logs:/var/log/supervisor
@@ -38,7 +27,6 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
-
 
 volumes:
   xielin-data:
