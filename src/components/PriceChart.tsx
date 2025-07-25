@@ -4,6 +4,7 @@ import { PlayCircleOutlined, PauseCircleOutlined, SyncOutlined, SoundOutlined, B
 import ReactECharts from 'echarts-for-react';
 import { StrategyInput } from '../types/strategy';
 import { contractDataService, OHLCVData } from '../services/contractDataService';
+import MACDChart from './MACDChart';
 
 interface PriceChartProps {
   input: StrategyInput;
@@ -696,6 +697,17 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
           opts={{ renderer: 'canvas' }}
         />
 
+        {/* MACD指标 */}
+        {historicalData.length > 35 && (
+          <div style={{ marginTop: 8 }}>
+            <MACDChart
+              ohlcvData={historicalData}
+              symbol={input.symbol}
+              compact={true}
+            />
+          </div>
+        )}
+
         {/* 紧凑模式成交量通知历史 */}
         {volumeNotificationEnabled && volumeAlerts.length > 0 && (
           <div style={{
@@ -826,7 +838,18 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
         style={{ height: '300px' }}
         opts={{ renderer: 'canvas' }}
       />
-      
+
+      {/* MACD指标 */}
+      {historicalData.length > 35 && (
+        <div style={{ marginTop: 16 }}>
+          <MACDChart
+            ohlcvData={historicalData}
+            symbol={input.symbol}
+            compact={false}
+          />
+        </div>
+      )}
+
       <div style={{ marginTop: 16, padding: '12px', background: '#f5f5f5', borderRadius: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>

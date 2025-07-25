@@ -536,28 +536,57 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                     </div>
                   ))}
                 </div>
+              ) : strategies.length === 2 ? (
+                // 2张图使用纯CSS Flexbox布局，避免Ant Design Grid问题
+                <div className="two-charts-flex-container" style={{
+                  display: 'flex',
+                  gap: '12px',
+                  width: '100%'
+                }}>
+                  {strategies.map((strategy, index) => (
+                    <div
+                      key={strategy.symbol || index}
+                      style={{
+                        flex: '1 1 50%',
+                        width: '50%',
+                        maxWidth: '50%'
+                      }}
+                    >
+                      <Card
+                        title={
+                          <div className="chart-title">
+                            <Space>
+                              <Text strong>{strategy.symbol}</Text>
+                              <Tag color={strategy.type === '兜底区' ? 'green' : 'orange'}>
+                                {strategy.type}
+                              </Tag>
+                              <Tag color="blue">{strategy.basic.recommendedLeverage}x杠杆</Tag>
+                            </Space>
+                          </div>
+                        }
+                        size="small"
+                        className="chart-card"
+                      >
+                        <div className="chart-container">
+                          <PriceChart
+                            input={convertToStrategyInput(strategy)}
+                            compact={true}
+                          />
+                        </div>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 // 其他数量使用Row/Col布局
                 <Row
                   gutter={getGutter(strategies.length)}
                   className={getLayoutClassName(strategies.length)}
-                  style={strategies.length === 2 ? { marginLeft: '-6px', marginRight: '-6px' } : {}}
                 >
                   {strategies.map((strategy, index) => {
                     const responsiveSpan = getResponsiveSpan(strategies.length);
-                    const colStyle = strategies.length === 2 ? {
-                      paddingLeft: '6px',
-                      paddingRight: '6px',
-                      width: '50%',
-                      maxWidth: '50%',
-                      flex: '0 0 50%'
-                    } : {};
                     return (
-                      <Col
-                        {...responsiveSpan}
-                        key={strategy.symbol || index}
-                        style={colStyle}
-                      >
+                      <Col {...responsiveSpan} key={strategy.symbol || index}>
                         <Card
                           title={
                             <div className="chart-title">

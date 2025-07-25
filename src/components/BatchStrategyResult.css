@@ -71,36 +71,26 @@
   margin: 0 auto;
 }
 
-/* 2张图 - 并排显示，精确50%宽度 */
-.adaptive-grid.two-charts .ant-row {
-  margin-left: -6px !important;
-  margin-right: -6px !important;
+/* 2张图 - 使用纯CSS Flexbox布局，精确50%宽度 */
+.two-charts-flex-container {
+  display: flex !important;
+  gap: 12px !important;
+  width: 100% !important;
 }
 
-.adaptive-grid.two-charts .ant-col {
-  display: flex !important;
-  justify-content: center !important;
-  padding-left: 6px !important;
-  padding-right: 6px !important;
+.two-charts-flex-container > div {
+  flex: 1 1 50% !important;
   width: 50% !important;
   max-width: 50% !important;
-  flex: 0 0 50% !important;
+  min-width: 0 !important; /* 防止内容溢出 */
 }
 
-/* 强制2张图的Row布局 */
-.two-charts.ant-row {
-  margin-left: -6px !important;
-  margin-right: -6px !important;
+.two-charts-flex-container .chart-card {
+  height: 100% !important;
 }
 
-.two-charts .ant-col {
-  display: flex !important;
-  justify-content: center !important;
-  padding-left: 6px !important;
-  padding-right: 6px !important;
-  width: 50% !important;
-  max-width: 50% !important;
-  flex: 0 0 50% !important;
+.two-charts-flex-container .chart-container {
+  width: 100% !important;
 }
 
 /* 3张图 - 三等分，精确33.33%宽度 */
