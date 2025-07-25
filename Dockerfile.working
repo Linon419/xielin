@@ -1,0 +1,66 @@
+# 基于本地成功构建的Dockerfile
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app
+
+# 增加Node.js内存限制
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# 复制package文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci
+
+# 复制所有文件
+COPY . .
+
+# 设置环境变量（允许警告但不阻止构建）
+ENV GENERATE_SOURCEMAP=false
+ENV CI=false
+ENV NODE_ENV=production
+
+# 构建（本地测试成功的命令）
+RUN npm run build
+
+# 验证构建结果
+RUN ls -la build/ && echo "Frontend build successful!"
+
+# 生产阶段
+FROM python:3.11-slim
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    nginx curl gcc supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python环境
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# 复制后端代码
+COPY backend-example/ ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制前端构建结果
+COPY --from=frontend-builder /app/build/ /var/www/html/
+
+# 验证前端文件复制
+RUN ls -la /var/www/html/ && echo "Frontend files copied successfully!"
+
+# 复制配置
+COPY nginx-combined.conf /etc/nginx/sites-available/default
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 设置目录和权限
+RUN mkdir -p /var/log/supervisor /app/data /var/run/nginx && \
+    chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health && curl -f http://localhost/api/health || exit 1
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
