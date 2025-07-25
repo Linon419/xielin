@@ -72,51 +72,67 @@
 }
 
 /* 2张图 - 并排显示，精确50%宽度 */
-.two-charts .ant-col {
-  display: flex;
-  justify-content: center;
+.adaptive-grid.two-charts .ant-row {
+  margin-left: -6px !important;
+  margin-right: -6px !important;
 }
 
-.two-charts .ant-row {
+.adaptive-grid.two-charts .ant-col {
+  display: flex !important;
+  justify-content: center !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  flex: 0 0 50% !important;
+}
+
+/* 强制2张图的Row布局 */
+.two-charts.ant-row {
   margin-left: -6px !important;
   margin-right: -6px !important;
 }
 
 .two-charts .ant-col {
+  display: flex !important;
+  justify-content: center !important;
   padding-left: 6px !important;
   padding-right: 6px !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  flex: 0 0 50% !important;
 }
 
 /* 3张图 - 三等分，精确33.33%宽度 */
-.three-charts .ant-col {
-  display: flex;
-  justify-content: center;
-}
-
-.three-charts .ant-row {
+.three-charts.ant-row {
   margin-left: -8px !important;
   margin-right: -8px !important;
 }
 
 .three-charts .ant-col {
+  display: flex !important;
+  justify-content: center !important;
   padding-left: 8px !important;
   padding-right: 8px !important;
+  width: 33.333333% !important;
+  max-width: 33.333333% !important;
+  flex: 0 0 33.333333% !important;
 }
 
 /* 4张图 - 四等分网格，精确25%宽度 */
-.four-charts .ant-col {
-  display: flex;
-  justify-content: center;
-}
-
-.four-charts .ant-row {
+.four-charts.ant-row {
   margin-left: -8px !important;
   margin-right: -8px !important;
 }
 
 .four-charts .ant-col {
+  display: flex !important;
+  justify-content: center !important;
   padding-left: 8px !important;
   padding-right: 8px !important;
+  width: 25% !important;
+  max-width: 25% !important;
+  flex: 0 0 25% !important;
 }
 
 /* 6张图及以上 - 紧凑网格 */

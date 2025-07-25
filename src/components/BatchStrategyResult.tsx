@@ -70,6 +70,25 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     }
   };
 
+  // 根据图表数量获取对应的CSS类名
+  const getLayoutClassName = (totalCount: number): string => {
+    if (totalCount === 1) {
+      return 'one-chart';
+    } else if (totalCount === 2) {
+      return 'two-charts';
+    } else if (totalCount === 3) {
+      return 'three-charts';
+    } else if (totalCount === 4) {
+      return 'four-charts';
+    } else if (totalCount === 5) {
+      return 'five-charts';
+    } else if (totalCount === 6) {
+      return 'six-charts';
+    } else {
+      return 'many-charts';
+    }
+  };
+
   // 将StrategyOutput转换为StrategyInput（用于PriceChart）
   const convertToStrategyInput = (strategy: StrategyOutput): StrategyInput => {
     return {
@@ -519,11 +538,26 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                 </div>
               ) : (
                 // 其他数量使用Row/Col布局
-                <Row gutter={getGutter(strategies.length)}>
+                <Row
+                  gutter={getGutter(strategies.length)}
+                  className={getLayoutClassName(strategies.length)}
+                  style={strategies.length === 2 ? { marginLeft: '-6px', marginRight: '-6px' } : {}}
+                >
                   {strategies.map((strategy, index) => {
                     const responsiveSpan = getResponsiveSpan(strategies.length);
+                    const colStyle = strategies.length === 2 ? {
+                      paddingLeft: '6px',
+                      paddingRight: '6px',
+                      width: '50%',
+                      maxWidth: '50%',
+                      flex: '0 0 50%'
+                    } : {};
                     return (
-                      <Col {...responsiveSpan} key={strategy.symbol || index}>
+                      <Col
+                        {...responsiveSpan}
+                        key={strategy.symbol || index}
+                        style={colStyle}
+                      >
                         <Card
                           title={
                             <div className="chart-title">

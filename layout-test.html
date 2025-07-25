@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图表布局测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .layout-demo {
+            margin-bottom: 40px;
+        }
+        
+        .layout-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1890ff;
+        }
+        
+        .layout-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .chart-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-card {
+            background: #fafafa;
+            border: 2px dashed #d9d9d9;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-weight: bold;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        /* 1张图 */
+        .one-chart .chart-card {
+            width: 100%;
+        }
+        
+        /* 2张图 */
+        .two-charts .chart-card {
+            width: calc(50% - 6px);
+        }
+        
+        /* 3张图 */
+        .three-charts .chart-card {
+            width: calc(33.33% - 8px);
+        }
+        
+        /* 4张图 */
+        .four-charts .chart-card {
+            width: calc(25% - 9px);
+        }
+        
+        /* 5张图 */
+        .five-charts .chart-card {
+            width: calc(20% - 9.6px);
+        }
+        
+        /* 6张图 */
+        .six-charts .chart-card {
+            width: calc(16.67% - 10px);
+        }
+        
+        .chart-symbol {
+            font-size: 16px;
+            color: #1890ff;
+            margin-bottom: 5px;
+        }
+        
+        .chart-type {
+            font-size: 12px;
+            color: #52c41a;
+        }
+        
+        .percentage {
+            font-size: 12px;
+            color: #ff4d4f;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 批量策略图表布局测试</h1>
+        <p>验证不同数量图表的自适应布局效果</p>
+        
+        <!-- 1张图 -->
+        <div class="layout-demo">
+            <div class="layout-title">1️⃣ 单图模式</div>
+            <div class="layout-description">💻 单图全屏显示模式 - 图表占满整个屏幕宽度</div>
+            <div class="chart-row one-chart">
+                <div class="chart-card">
+                    <div class="chart-symbol">BTC</div>
+                    <div class="chart-type">兜底区 10x杠杆</div>
+                    <div class="percentage">100% 宽度</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 2张图 -->
+        <div class="layout-demo">
+            <div class="layout-title">2️⃣ 双图模式</div>
+            <div class="layout-description">💻 双图并排显示模式 - 每图占屏幕50%宽度</div>
+            <div class="chart-row two-charts">
+                <div class="chart-card">
+                    <div class="chart-symbol">BTC</div>
+                    <div class="chart-type">兜底区 10x杠杆</div>
+                    <div class="percentage">50% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ETH</div>
+                    <div class="chart-type">探顶区 8x杠杆</div>
+                    <div class="percentage">50% 宽度</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3张图 -->
+        <div class="layout-demo">
+            <div class="layout-title">3️⃣ 三图模式</div>
+            <div class="layout-description">💻 三图自适应显示模式 - 每图占屏幕33.3%宽度</div>
+            <div class="chart-row three-charts">
+                <div class="chart-card">
+                    <div class="chart-symbol">BTC</div>
+                    <div class="chart-type">兜底区 10x</div>
+                    <div class="percentage">33.33% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ETH</div>
+                    <div class="chart-type">探顶区 8x</div>
+                    <div class="percentage">33.33% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ADA</div>
+                    <div class="chart-type">兜底区 12x</div>
+                    <div class="percentage">33.33% 宽度</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 4张图 -->
+        <div class="layout-demo">
+            <div class="layout-title">4️⃣ 四图模式</div>
+            <div class="layout-description">💻 四图网格显示模式 - 每图占屏幕25%宽度</div>
+            <div class="chart-row four-charts">
+                <div class="chart-card">
+                    <div class="chart-symbol">BTC</div>
+                    <div class="chart-type">兜底区 10x</div>
+                    <div class="percentage">25% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ETH</div>
+                    <div class="chart-type">探顶区 8x</div>
+                    <div class="percentage">25% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ADA</div>
+                    <div class="chart-type">兜底区 12x</div>
+                    <div class="percentage">25% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">DOT</div>
+                    <div class="chart-type">探顶区 6x</div>
+                    <div class="percentage">25% 宽度</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 5张图 -->
+        <div class="layout-demo">
+            <div class="layout-title">5️⃣ 五图模式</div>
+            <div class="layout-description">💻 五图自适应显示模式 - 每图占屏幕20%宽度</div>
+            <div class="chart-row five-charts">
+                <div class="chart-card">
+                    <div class="chart-symbol">BTC</div>
+                    <div class="chart-type">兜底区 10x</div>
+                    <div class="percentage">20% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ETH</div>
+                    <div class="chart-type">探顶区 8x</div>
+                    <div class="percentage">20% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ADA</div>
+                    <div class="chart-type">兜底区 12x</div>
+                    <div class="percentage">20% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">DOT</div>
+                    <div class="chart-type">探顶区 6x</div>
+                    <div class="percentage">20% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">SOL</div>
+                    <div class="chart-type">兜底区 15x</div>
+                    <div class="percentage">20% 宽度</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 6张图 -->
+        <div class="layout-demo">
+            <div class="layout-title">6️⃣ 六图模式</div>
+            <div class="layout-description">💻 六图网格显示模式 - 每图占屏幕16.7%宽度</div>
+            <div class="chart-row six-charts">
+                <div class="chart-card">
+                    <div class="chart-symbol">BTC</div>
+                    <div class="chart-type">兜底区 10x</div>
+                    <div class="percentage">16.67% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ETH</div>
+                    <div class="chart-type">探顶区 8x</div>
+                    <div class="percentage">16.67% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">ADA</div>
+                    <div class="chart-type">兜底区 12x</div>
+                    <div class="percentage">16.67% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">DOT</div>
+                    <div class="chart-type">探顶区 6x</div>
+                    <div class="percentage">16.67% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">SOL</div>
+                    <div class="chart-type">兜底区 15x</div>
+                    <div class="percentage">16.67% 宽度</div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-symbol">LINK</div>
+                    <div class="chart-type">探顶区 9x</div>
+                    <div class="percentage">16.67% 宽度</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #1890ff;">
+            <h3>✅ 布局优化效果</h3>
+            <ul>
+                <li><strong>智能间距</strong>：根据图表数量自动调整间距</li>
+                <li><strong>精确比例</strong>：每种数量都有最佳的宽度分配</li>
+                <li><strong>空间最大化</strong>：充分利用屏幕宽度</li>
+                <li><strong>视觉平衡</strong>：保持专业的外观</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
