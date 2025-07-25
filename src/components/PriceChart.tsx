@@ -704,6 +704,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
               ohlcvData={historicalData}
               symbol={input.symbol}
               compact={true}
+              timeframe={timeframe}
             />
           </div>
         )}
@@ -846,6 +847,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
             ohlcvData={historicalData}
             symbol={input.symbol}
             compact={false}
+            timeframe={timeframe}
           />
         </div>
       )}

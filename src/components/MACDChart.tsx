@@ -18,9 +18,10 @@ interface MACDChartProps {
   ohlcvData: OHLCVData[];
   symbol: string;
   compact?: boolean;
+  timeframe?: string; // 添加时间周期参数，用于时间轴格式化
 }
 
-const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = false }) => {
+const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = false, timeframe = '1h' }) => {
   // 计算MACD数据
   const macdData = useMemo(() => {
     // 降低数据要求：26(慢线) + 9(信号线) = 35，但我们可以用更少的数据
@@ -112,7 +113,51 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
       xAxis: {
         type: 'time',
         axisLabel: {
-          fontSize: 10
+          fontSize: 10,
+          formatter: function (value: number) {
+            const date = new Date(value);
+            // 根据时间周期选择不同的显示格式，与价格图表保持一致
+            switch (timeframe) {
+              case '1m':
+                return date.toLocaleString('zh-CN', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+              case '15m':
+                return date.toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+              case '1h':
+                return date.toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+              case '4h':
+                return date.toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit'
+                });
+              default:
+                return date.toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+            }
+          }
+        },
+        axisTick: {
+          show: true
+        },
+        axisLine: {
+          show: true
         }
       },
       yAxis: {
