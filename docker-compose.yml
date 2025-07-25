@@ -38,29 +38,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
     restart: unless-stopped
 
-  # 私有API服务
-  private-api:
-    image: your-private-api:latest  # 替换为您的私有API镜像
-    # 或者本地构建：
-    # build:
-    #   context: ./private-api
-    #   dockerfile: Dockerfile
-    container_name: xielin-private-api
-    environment:
-      - API_KEY=${PRIVATE_API_KEY}
-      - DATABASE_URL=${PRIVATE_DB_URL}
-    volumes:
-      - ./private-data:/app/data
-    ports:
-      - "8080:8080"  # 私有API端口
-    networks:
-      - xielin-network
-    restart: unless-stopped
-    depends_on:
-      - xielin
 
 volumes:
   xielin-data:
