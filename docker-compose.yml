@@ -14,6 +14,20 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      # CCXT私有API配置
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_SECRET=${BINANCE_SECRET}
+      - OKEX_API_KEY=${OKEX_API_KEY}
+      - OKEX_SECRET=${OKEX_SECRET}
+      - OKEX_PASSPHRASE=${OKEX_PASSPHRASE}
+      - BYBIT_API_KEY=${BYBIT_API_KEY}
+      - BYBIT_SECRET=${BYBIT_SECRET}
+      # 可以根据需要添加更多交易所
+      # - HUOBI_API_KEY=${HUOBI_API_KEY}
+      # - HUOBI_SECRET=${HUOBI_SECRET}
+      # - KUCOIN_API_KEY=${KUCOIN_API_KEY}
+      # - KUCOIN_SECRET=${KUCOIN_SECRET}
+      # - KUCOIN_PASSPHRASE=${KUCOIN_PASSPHRASE}
     volumes:
       - ./data:/app/data
       - ./logs:/var/log/supervisor
@@ -26,6 +40,27 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+
+  # 私有API服务
+  private-api:
+    image: your-private-api:latest  # 替换为您的私有API镜像
+    # 或者本地构建：
+    # build:
+    #   context: ./private-api
+    #   dockerfile: Dockerfile
+    container_name: xielin-private-api
+    environment:
+      - API_KEY=${PRIVATE_API_KEY}
+      - DATABASE_URL=${PRIVATE_DB_URL}
+    volumes:
+      - ./private-data:/app/data
+    ports:
+      - "8080:8080"  # 私有API端口
+    networks:
+      - xielin-network
+    restart: unless-stopped
+    depends_on:
+      - xielin
 
 volumes:
   xielin-data:

@@ -89,34 +89,61 @@ EXCHANGES_CONFIG = {
 }
 
 # 检查API密钥配置
-def get_api_credentials():
-    """获取API凭证配置"""
-    api_key = os.getenv('BINANCE_API_KEY')
-    secret = os.getenv('BINANCE_SECRET')
-    return api_key, secret
+def get_api_credentials(exchange_name='binance'):
+    """获取指定交易所的API凭证配置"""
+    if exchange_name == 'binance':
+        api_key = os.getenv('BINANCE_API_KEY')
+        secret = os.getenv('BINANCE_SECRET')
+        return api_key, secret, None
+    elif exchange_name == 'okx':
+        api_key = os.getenv('OKEX_API_KEY')
+        secret = os.getenv('OKEX_SECRET')
+        passphrase = os.getenv('OKEX_PASSPHRASE')
+        return api_key, secret, passphrase
+    elif exchange_name == 'bybit':
+        api_key = os.getenv('BYBIT_API_KEY')
+        secret = os.getenv('BYBIT_SECRET')
+        return api_key, secret, None
+    else:
+        return None, None, None
 
-def is_private_api_configured():
-    """检查是否配置了私有API"""
-    api_key, secret = get_api_credentials()
+def is_private_api_configured(exchange_name='binance'):
+    """检查指定交易所是否配置了私有API"""
+    api_key, secret, passphrase = get_api_credentials(exchange_name)
+    if exchange_name == 'okx':
+        return bool(api_key and secret and passphrase)
     return bool(api_key and secret)
+
+def get_configured_exchanges():
+    """获取所有配置了私有API的交易所"""
+    configured = []
+    for exchange_name in EXCHANGES_CONFIG.keys():
+        if is_private_api_configured(exchange_name):
+            configured.append(exchange_name)
+    return configured
 
 # 初始化交易所
 exchanges = {}
-api_key, secret = get_api_credentials()
-use_private_api = is_private_api_configured()
 
 for name, config in EXCHANGES_CONFIG.items():
     try:
         exchange_config = config['options'].copy()
 
-        # 如果配置了API密钥且是Binance，则使用私有API
-        if use_private_api and name == 'binance':
+        # 检查是否配置了该交易所的私有API
+        if is_private_api_configured(name):
+            api_key, secret, passphrase = get_api_credentials(name)
+
             exchange_config.update({
                 'apiKey': api_key,
                 'secret': secret,
                 'enableRateLimit': True,
                 'rateLimit': 50,  # 私有API更高的频率限制
             })
+
+            # OKX需要passphrase
+            if name == 'okx' and passphrase:
+                exchange_config['password'] = passphrase
+
             logger.info(f"使用私有API初始化交易所 {name}")
         else:
             logger.info(f"使用公共API初始化交易所 {name}")
@@ -569,8 +596,19 @@ async def get_contract_history(
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
-    # 使用统一的API配置检查函数
-    api_keys_configured = is_private_api_configured()
+    # 获取所有配置了私有API的交易所
+    configured_exchanges = get_configured_exchanges()
+    has_private_api = len(configured_exchanges) > 0
+
+    # 构建交易所状态信息
+    exchange_status = {}
+    for name in exchanges.keys():
+        is_private = name in configured_exchanges
+        exchange_status[name] = {
+            "available": True,
+            "api_mode": "private" if is_private else "public",
+            "configured": is_private
+        }
 
     return {
         "success": True,
@@ -578,33 +616,35 @@ async def health_check():
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "exchanges": list(exchanges.keys()),
-            "api_mode": "private" if api_keys_configured else "public",
-            "api_keys_configured": api_keys_configured,
+            "exchange_status": exchange_status,
+            "private_api_exchanges": configured_exchanges,
+            "api_mode": "mixed" if has_private_api else "public",
             "ccxt_available": True,
             "features": {
                 "real_time_data": True,
                 "historical_data": True,
                 "funding_rate": True,
-                "high_frequency": api_keys_configured,  # 私有API才有高频访问
-                "account_info": api_keys_configured     # 私有API才能获取账户信息
+                "high_frequency": has_private_api,  # 有私有API才有高频访问
+                "account_info": has_private_api,    # 有私有API才能获取账户信息
+                "multi_exchange": True
             },
             "rate_limits": {
-                "private_api": "1200/min" if api_keys_configured else "N/A",
+                "private_api": "6000/min" if has_private_api else "N/A",
                 "public_api": "1200/min"
             },
-            "mode_info": {
-                "current_mode": "private" if api_keys_configured else "public",
-                "switch_tip": "在.env文件中配置BINANCE_API_KEY和BINANCE_SECRET可启用私有API模式" if not api_keys_configured else "私有API模式已启用，享受完整功能",
-                "benefits": [
-                    "高频率访问",
-                    "账户信息获取",
-                    "更稳定的连接",
-                    "完整交易功能"
-                ] if api_keys_configured else [
-                    "无需配置",
-                    "基础功能完整",
-                    "免费使用",
-                    "开箱即用"
+            "configuration": {
+                "total_exchanges": len(exchanges),
+                "private_configured": len(configured_exchanges),
+                "public_only": len(exchanges) - len(configured_exchanges),
+                "supported_exchanges": ["binance", "okx", "bybit"],
+                "tips": [
+                    "配置BINANCE_API_KEY和BINANCE_SECRET启用币安私有API",
+                    "配置OKEX_API_KEY、OKEX_SECRET和OKEX_PASSPHRASE启用OKX私有API",
+                    "配置BYBIT_API_KEY和BYBIT_SECRET启用Bybit私有API"
+                ] if not has_private_api else [
+                    f"已配置{len(configured_exchanges)}个交易所的私有API",
+                    "享受高频访问和完整功能",
+                    "支持账户信息获取"
                 ]
             }
         }
@@ -692,12 +732,16 @@ async def startup_event():
     logger.info("应用启动中...")
 
     # 显示API模式信息
-    if is_private_api_configured():
-        logger.info("🔑 使用私有API模式 - 高频率访问，完整功能")
-        logger.info("✅ API密钥已配置")
+    configured_exchanges = get_configured_exchanges()
+    if configured_exchanges:
+        logger.info(f"🔑 私有API模式 - 已配置{len(configured_exchanges)}个交易所: {', '.join(configured_exchanges)}")
+        logger.info("✅ 享受高频率访问和完整功能")
     else:
-        logger.info("🌐 使用公共API模式 - 基础功能，无需配置")
-        logger.info("💡 提示：在.env文件中配置BINANCE_API_KEY和BINANCE_SECRET可启用私有API模式")
+        logger.info("🌐 公共API模式 - 基础功能，无需配置")
+        logger.info("💡 提示：配置交易所API密钥可启用私有API模式")
+        logger.info("   - BINANCE_API_KEY + BINANCE_SECRET (币安)")
+        logger.info("   - OKEX_API_KEY + OKEX_SECRET + OKEX_PASSPHRASE (OKX)")
+        logger.info("   - BYBIT_API_KEY + BYBIT_SECRET (Bybit)")
 
     # 初始化数据库
     try:
