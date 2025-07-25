@@ -72,68 +72,51 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
     const signalLine = macdData.map(item => [item.timestamp, item.signal]);
     const histogramData = macdData.map(item => [item.timestamp, item.histogram]);
 
+    const macdRange = [Math.min(...macdLine.map(d => d[1])), Math.max(...macdLine.map(d => d[1]))];
+    const signalRange = [Math.min(...signalLine.map(d => d[1])), Math.max(...signalLine.map(d => d[1]))];
+    const histogramRange = [Math.min(...histogramData.map(d => d[1])), Math.max(...histogramData.map(d => d[1]))];
+
     console.log(`MACD Chart: ${symbol} - 数据范围:`, {
-      macdRange: [Math.min(...macdLine.map(d => d[1])), Math.max(...macdLine.map(d => d[1]))],
-      signalRange: [Math.min(...signalLine.map(d => d[1])), Math.max(...signalLine.map(d => d[1]))],
-      histogramRange: [Math.min(...histogramData.map(d => d[1])), Math.max(...histogramData.map(d => d[1]))]
+      macdRange,
+      signalRange,
+      histogramRange,
+      dataCount: macdData.length,
+      firstPoint: macdLine[0],
+      lastPoint: macdLine[macdLine.length - 1]
     });
 
-    return {
+    const config = {
       animation: false,
+      backgroundColor: 'transparent',
       grid: {
-        left: compact ? '10%' : '10%',
-        right: compact ? '8%' : '10%',
-        top: compact ? '10%' : '15%',
-        bottom: compact ? '20%' : '25%'
+        left: '12%',
+        right: '8%',
+        top: '15%',
+        bottom: '25%',
+        containLabel: true
       },
       tooltip: {
         trigger: 'axis',
         axisPointer: {
-          type: 'cross'
-        },
-        formatter: (params: any) => {
-          if (!params || params.length === 0) return '';
-          
-          const timestamp = params[0].axisValue;
-          const date = new Date(timestamp).toLocaleString();
-          
-          let content = `<div style="font-size: 12px;">
-            <div style="margin-bottom: 4px;"><strong>${date}</strong></div>`;
-          
-          params.forEach((param: any) => {
-            const value = typeof param.value === 'number' ? param.value : param.value[1];
-            content += `<div style="color: ${param.color};">
-              ${param.seriesName}: ${value.toFixed(6)}
-            </div>`;
-          });
-          
-          content += '</div>';
-          return content;
+          type: 'line'
         }
       },
       xAxis: {
         type: 'time',
         axisLabel: {
-          fontSize: compact ? 10 : 12,
-          formatter: (value: number) => {
-            const date = new Date(value);
-            return compact ? 
-              `${date.getMonth() + 1}/${date.getDate()}` :
-              `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-          }
+          fontSize: 10
         }
       },
       yAxis: {
         type: 'value',
         axisLabel: {
-          fontSize: compact ? 10 : 12,
+          fontSize: 10,
           formatter: (value: number) => value.toFixed(4)
         },
         splitLine: {
           show: true,
           lineStyle: {
-            color: '#f0f0f0',
-            type: 'dashed'
+            color: '#f0f0f0'
           }
         }
       },
@@ -174,7 +157,19 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
         }
       ]
     };
-  }, [macdData, compact]);
+
+    console.log(`MACD Chart: ${symbol} - 最终配置:`, {
+      hasGrid: !!config.grid,
+      hasXAxis: !!config.xAxis,
+      hasYAxis: !!config.yAxis,
+      seriesCount: config.series.length,
+      macdDataPoints: config.series[0].data.length,
+      signalDataPoints: config.series[1].data.length,
+      histogramDataPoints: config.series[2].data.length
+    });
+
+    return config;
+  }, [macdData, compact, symbol]);
 
   // 获取信号图标和颜色
   const getSignalIcon = (signalType: string) => {
