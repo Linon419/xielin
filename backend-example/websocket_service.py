@@ -234,17 +234,41 @@ class RealTimeDataService:
                         threshold = sub['volume_threshold']
                         
                         # 检查是否触发放量提醒
-                        is_volume_alert = await self._check_volume_threshold(symbol, threshold)
-                        
-                        if is_volume_alert:
-                            # 发送放量提醒
+                        volume_analysis = await self._get_volume_analysis(symbol, threshold)
+
+                        if volume_analysis and volume_analysis['is_anomaly']:
+                            # 发送详细的放量提醒
                             await manager.send_personal_message({
                                 'type': 'volume_alert',
                                 'symbol': symbol,
                                 'threshold': threshold,
-                                'message': f'{symbol} 触发放量提醒！当前成交量超过平均值 {threshold} 倍',
-                                'timestamp': datetime.utcnow().isoformat()
+                                'message': f'{symbol} 触发放量提醒！当前成交量超过平均值 {volume_analysis["multiplier"]:.2f} 倍',
+                                'timestamp': datetime.utcnow().isoformat(),
+                                'analysis': {
+                                    'current_volume': volume_analysis['current_volume'],
+                                    'avg_volume': volume_analysis['avg_volume'],
+                                    'multiplier': volume_analysis['multiplier'],
+                                    'price': volume_analysis['price'],
+                                    'std_dev': volume_analysis['std_dev']
+                                }
                             }, sub['user_id'])
+
+                            # 同时发送Telegram推送（如果用户启用了）
+                            try:
+                                from message_routes import send_volume_alert_telegram
+                                await send_volume_alert_telegram(
+                                    symbol=symbol,
+                                    volume_data={
+                                        'current_volume': volume_analysis['current_volume'],
+                                        'avg_volume': volume_analysis['avg_volume'],
+                                        'multiplier': volume_analysis['multiplier'],
+                                        'price': volume_analysis['price'],
+                                        'timeframe': '5m'
+                                    },
+                                    user_ids=[sub['user_id']]
+                                )
+                            except Exception as telegram_error:
+                                logger.error(f"Telegram推送失败: {telegram_error}")
                             
                     except Exception as e:
                         logger.error(f"检查放量提醒失败: {e}")
@@ -256,17 +280,143 @@ class RealTimeDataService:
                 await asyncio.sleep(30)
     
     async def _check_volume_threshold(self, symbol: str, threshold: float) -> bool:
-        """检查是否触发放量阈值"""
+        """检查是否触发放量阈值 - 使用与前端相同的逻辑"""
         try:
-            # 这里简化实现，实际应该计算平均成交量
-            ticker = await self._get_ticker_data(symbol)
-            if ticker and ticker['volume']:
-                # 简单的放量检测逻辑
-                return ticker['volume'] > 1000000 * threshold
+            # 获取历史OHLCV数据用于计算平均成交量和标准差
+            historical_data = await self._get_historical_ohlcv_data(symbol, '5m', 25)
+
+            if not historical_data or len(historical_data) < 20:
+                logger.warning(f"历史数据不足，无法进行放量检测: {symbol}")
+                return False
+
+            # 使用与前端PriceChart相同的放量检测逻辑
+            volume_analysis = self._analyze_volume_anomaly(historical_data, threshold)
+
+            if volume_analysis and volume_analysis['is_anomaly']:
+                logger.info(f"检测到放量异常: {symbol}, 倍数: {volume_analysis['multiplier']:.2f}x")
+                return True
+
             return False
+
         except Exception as e:
             logger.error(f"检查放量阈值失败: {e}")
             return False
+
+    async def _get_volume_analysis(self, symbol: str, threshold: float) -> dict:
+        """获取成交量分析结果"""
+        try:
+            # 获取历史OHLCV数据用于计算平均成交量和标准差
+            historical_data = await self._get_historical_ohlcv_data(symbol, '5m', 25)
+
+            if not historical_data or len(historical_data) < 20:
+                return None
+
+            # 使用与前端PriceChart相同的放量检测逻辑
+            return self._analyze_volume_anomaly(historical_data, threshold)
+
+        except Exception as e:
+            logger.error(f"获取成交量分析失败: {e}")
+            return None
+
+    def _analyze_volume_anomaly(self, ohlcv_data: list, threshold: float) -> dict:
+        """分析成交量异常 - 与前端PriceChart组件逻辑完全一致"""
+        try:
+            if len(ohlcv_data) < 20:
+                return None
+
+            # 最新数据点
+            latest = ohlcv_data[-1]
+            # 最近19个数据点（不包括最新的）
+            recent_19 = ohlcv_data[-20:-1]
+
+            # 计算平均成交量
+            volumes = [item['volume'] for item in recent_19]
+            avg_volume = sum(volumes) / len(volumes)
+
+            # 计算标准差
+            variance = sum((vol - avg_volume) ** 2 for vol in volumes) / len(volumes)
+            std_dev = variance ** 0.5
+
+            # 计算当前成交量相对于平均值的倍数
+            current_volume = latest['volume']
+            multiplier = current_volume / avg_volume if avg_volume > 0 else 0
+
+            # 检查是否为异常放量（超过阈值且超过2个标准差）
+            is_anomaly = (multiplier >= threshold and
+                         current_volume > (avg_volume + 2 * std_dev))
+
+            return {
+                'is_anomaly': is_anomaly,
+                'current_volume': current_volume,
+                'avg_volume': avg_volume,
+                'multiplier': multiplier,
+                'std_dev': std_dev,
+                'timestamp': latest['timestamp'],
+                'price': latest['close']
+            }
+
+        except Exception as e:
+            logger.error(f"成交量异常分析失败: {e}")
+            return None
+
+    async def _get_historical_ohlcv_data(self, symbol: str, timeframe: str = '5m', limit: int = 25) -> list:
+        """获取历史OHLCV数据用于放量分析"""
+        try:
+            # 这里应该调用实际的市场数据API
+            # 为了演示，我们生成模拟数据，实际应用中应该替换为真实API调用
+
+            # 模拟生成历史OHLCV数据
+            import time
+            import random
+
+            current_time = int(time.time() * 1000)
+            interval_ms = self._get_timeframe_ms(timeframe)
+
+            ohlcv_data = []
+            base_price = 45000.0  # 基础价格
+            base_volume = 1000000.0  # 基础成交量
+
+            for i in range(limit):
+                timestamp = current_time - (limit - i - 1) * interval_ms
+
+                # 模拟价格波动
+                price_change = (random.random() - 0.5) * 0.02  # ±1%波动
+                price = base_price * (1 + price_change)
+
+                # 模拟成交量波动
+                volume_change = (random.random() - 0.3) * 2  # 更大的成交量波动
+                volume = max(base_volume * (1 + volume_change), base_volume * 0.1)
+
+                # 最后一个数据点可能是放量
+                if i == limit - 1 and random.random() < 0.3:  # 30%概率放量
+                    volume *= random.uniform(2.0, 5.0)  # 2-5倍放量
+
+                ohlcv_data.append({
+                    'timestamp': timestamp,
+                    'open': price,
+                    'high': price * (1 + random.random() * 0.01),
+                    'low': price * (1 - random.random() * 0.01),
+                    'close': price,
+                    'volume': volume
+                })
+
+            return ohlcv_data
+
+        except Exception as e:
+            logger.error(f"获取历史OHLCV数据失败: {e}")
+            return []
+
+    def _get_timeframe_ms(self, timeframe: str) -> int:
+        """获取时间周期对应的毫秒数"""
+        timeframe_map = {
+            '1m': 60 * 1000,
+            '5m': 5 * 60 * 1000,
+            '15m': 15 * 60 * 1000,
+            '1h': 60 * 60 * 1000,
+            '4h': 4 * 60 * 60 * 1000,
+            '1d': 24 * 60 * 60 * 1000
+        }
+        return timeframe_map.get(timeframe, 5 * 60 * 1000)  # 默认5分钟
 
 # 全局实时数据服务
 realtime_service = RealTimeDataService()
