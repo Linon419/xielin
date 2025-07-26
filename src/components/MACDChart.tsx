@@ -67,21 +67,34 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
 
     console.log(`MACD Chart: ${symbol} - 构建图表配置，数据点数量: ${macdData.length}`);
 
-    // 准备数据
-    const timestamps = macdData.map(item => item.timestamp);
-    const macdLine = macdData.map(item => [item.timestamp, item.macd]);
-    const signalLine = macdData.map(item => [item.timestamp, item.signal]);
-    const histogramData = macdData.map(item => [item.timestamp, item.histogram]);
+    // 过滤出有效数据并准备图表数据
+    const validData = macdData.filter(item =>
+      item.macd !== null && item.signal !== null && item.histogram !== null
+    );
 
-    const macdRange = [Math.min(...macdLine.map(d => d[1])), Math.max(...macdLine.map(d => d[1]))];
-    const signalRange = [Math.min(...signalLine.map(d => d[1])), Math.max(...signalLine.map(d => d[1]))];
-    const histogramRange = [Math.min(...histogramData.map(d => d[1])), Math.max(...histogramData.map(d => d[1]))];
+    if (validData.length === 0) {
+      console.log(`MACD Chart: ${symbol} - 没有有效的MACD数据`);
+      return {};
+    }
+
+    const macdLine = validData.map(item => [item.timestamp, item.macd!]);
+    const signalLine = validData.map(item => [item.timestamp, item.signal!]);
+    const histogramData = validData.map(item => [item.timestamp, item.histogram!]);
+
+    const macdValues = macdLine.map(d => d[1] as number);
+    const signalValues = signalLine.map(d => d[1] as number);
+    const histogramValues = histogramData.map(d => d[1] as number);
+
+    const macdRange = [Math.min(...macdValues), Math.max(...macdValues)];
+    const signalRange = [Math.min(...signalValues), Math.max(...signalValues)];
+    const histogramRange = [Math.min(...histogramValues), Math.max(...histogramValues)];
 
     console.log(`MACD Chart: ${symbol} - 数据范围:`, {
       macdRange,
       signalRange,
       histogramRange,
-      dataCount: macdData.length,
+      validDataCount: validData.length,
+      totalDataCount: macdData.length,
       firstPoint: macdLine[0],
       lastPoint: macdLine[macdLine.length - 1]
     });
@@ -399,7 +412,7 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
         )}
       </div>
       {/* MACD数值显示 */}
-      {analysis && (
+      {analysis && analysis.current.macd !== null && analysis.current.signal !== null && analysis.current.histogram !== null && (
         <div style={{
           marginBottom: compact ? '8px' : '12px',
           fontSize: compact ? '11px' : '12px'
@@ -407,20 +420,20 @@ const MACDChart: React.FC<MACDChartProps> = ({ ohlcvData, symbol, compact = fals
           <Space split={<span style={{ color: '#d9d9d9' }}>|</span>} size="small">
             <Text>
               MACD: <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {analysis.current.macd.toFixed(compact ? 4 : 6)}
+                {analysis.current.macd!.toFixed(compact ? 4 : 6)}
               </span>
             </Text>
             <Text>
               Signal: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
-                {analysis.current.signal.toFixed(compact ? 4 : 6)}
+                {analysis.current.signal!.toFixed(compact ? 4 : 6)}
               </span>
             </Text>
             <Text>
               Histogram: <span style={{
-                color: analysis.current.histogram >= 0 ? '#52c41a' : '#ff4d4f',
+                color: analysis.current.histogram! >= 0 ? '#52c41a' : '#ff4d4f',
                 fontWeight: 'bold'
               }}>
-                {analysis.current.histogram.toFixed(compact ? 4 : 6)}
+                {analysis.current.histogram!.toFixed(compact ? 4 : 6)}
               </span>
             </Text>
             {!compact && (divergence.bullishDivergence || divergence.bearishDivergence) && (

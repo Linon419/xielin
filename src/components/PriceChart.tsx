@@ -258,9 +258,15 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
 
     // 计算MACD数据
     const macdData = historicalData.length >= 30 ? calculateMACD(historicalData) : [];
-    const macdLine = macdData.map(item => [item.timestamp, item.macd]);
-    const signalLine = macdData.map(item => [item.timestamp, item.signal]);
-    const histogramData = macdData.map(item => [item.timestamp, item.histogram]);
+
+    // 过滤出有效的MACD数据
+    const validMACDData = macdData.filter(item =>
+      item.macd !== null && item.signal !== null && item.histogram !== null
+    );
+
+    const macdLine = validMACDData.map(item => [item.timestamp, item.macd!]);
+    const signalLine = validMACDData.map(item => [item.timestamp, item.signal!]);
+    const histogramData = validMACDData.map(item => [item.timestamp, item.histogram!]);
     
     // 获取当前时间周期的标签
     const currentTimeframeOption = timeframeOptions.find(opt => opt.value === timeframe);
@@ -620,7 +626,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
           }
         },
         // MACD系列
-        ...(macdData.length > 0 ? [
+        ...(validMACDData.length > 0 ? [
           {
             name: 'MACD',
             type: 'line',
@@ -734,7 +740,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ input, compact = false }) => {
           }
         },
         // MACD系列
-        ...(macdData.length > 0 ? [
+        ...(validMACDData.length > 0 ? [
           {
             name: 'MACD',
             type: 'line',
