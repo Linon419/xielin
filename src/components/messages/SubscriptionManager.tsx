@@ -141,7 +141,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
         is_enabled: true,
         volume_alert_enabled: values.volume_alert_enabled || false,
         volume_threshold: typeof values.volume_threshold === 'number' ? values.volume_threshold : parseFloat(values.volume_threshold) || 1.5,
-        volume_timeframe: values.volume_timeframe || '5m'
+        volume_timeframe: values.volume_timeframe || '5m',
+        volume_analysis_timeframe: values.volume_analysis_timeframe || '5m',
+        notification_interval: values.notification_interval || 120
       });
       
       setSubscriptions(prev => {
@@ -179,7 +181,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
         alert_settings: values.alert_settings || currentSubscription.alert_settings,
         volume_alert_enabled: values.volume_alert_enabled !== undefined ? values.volume_alert_enabled : currentSubscription.volume_alert_enabled,
         volume_threshold: values.volume_threshold !== undefined ? (typeof values.volume_threshold === 'number' ? values.volume_threshold : parseFloat(values.volume_threshold)) : currentSubscription.volume_threshold,
-        volume_timeframe: values.volume_timeframe || currentSubscription.volume_timeframe
+        volume_timeframe: values.volume_timeframe || currentSubscription.volume_timeframe,
+        volume_analysis_timeframe: values.volume_analysis_timeframe || currentSubscription.volume_analysis_timeframe || '5m',
+        notification_interval: values.notification_interval !== undefined ? values.notification_interval : (currentSubscription as any).notification_interval || 120
       });
 
       setSubscriptions(prev =>
@@ -209,7 +213,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
       // 放量提醒设置
       volume_alert_enabled: subscription.volume_alert_enabled || false,
       volume_threshold: subscription.volume_threshold || 1.5,
-      volume_timeframe: subscription.volume_timeframe || '5m'
+      volume_timeframe: subscription.volume_timeframe || '5m',
+      volume_analysis_timeframe: subscription.volume_analysis_timeframe || '5m',
+      notification_interval: subscription.notification_interval || 120
     });
 
     setSettingsModalVisible(true);
@@ -457,6 +463,38 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
             </Select>
           </Form.Item>
 
+          <Form.Item
+            name="volume_analysis_timeframe"
+            label="统计数据周期"
+            initialValue="5m"
+            tooltip="用于计算平均成交量和标准差的K线周期，影响放量检测的基准"
+          >
+            <Select>
+              <Option value="1m">1分钟K线（高频交易）</Option>
+              <Option value="5m">5分钟K线（推荐）</Option>
+              <Option value="15m">15分钟K线（中期趋势）</Option>
+              <Option value="1h">1小时K线（长期趋势）</Option>
+              <Option value="4h">4小时K线（日内波段）</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="notification_interval"
+            label="通知间隔"
+            initialValue={120}
+            tooltip="同一币种两次通知之间的最小间隔时间，避免频繁通知"
+          >
+            <Select>
+              <Option value={30}>30秒（高频）</Option>
+              <Option value={60}>1分钟</Option>
+              <Option value={120}>2分钟（推荐）</Option>
+              <Option value={300}>5分钟</Option>
+              <Option value={600}>10分钟</Option>
+              <Option value={900}>15分钟</Option>
+              <Option value={1800}>30分钟（低频）</Option>
+            </Select>
+          </Form.Item>
+
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit">
@@ -565,6 +603,36 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptio
               <Option value="15m">15分钟</Option>
               <Option value="30m">30分钟</Option>
               <Option value="1h">1小时（长期）</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="volume_analysis_timeframe"
+            label="统计数据周期"
+            tooltip="用于计算平均成交量和标准差的K线周期，影响放量检测的基准"
+          >
+            <Select placeholder="选择统计周期">
+              <Option value="1m">1分钟K线（高频交易）</Option>
+              <Option value="5m">5分钟K线（推荐）</Option>
+              <Option value="15m">15分钟K线（中期趋势）</Option>
+              <Option value="1h">1小时K线（长期趋势）</Option>
+              <Option value="4h">4小时K线（日内波段）</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="notification_interval"
+            label="通知间隔"
+            tooltip="同一币种两次通知之间的最小间隔时间，避免频繁通知"
+          >
+            <Select placeholder="选择通知间隔">
+              <Option value={30}>30秒（高频）</Option>
+              <Option value={60}>1分钟</Option>
+              <Option value={120}>2分钟（推荐）</Option>
+              <Option value={300}>5分钟</Option>
+              <Option value={600}>10分钟</Option>
+              <Option value={900}>15分钟</Option>
+              <Option value={1800}>30分钟（低频）</Option>
             </Select>
           </Form.Item>
 

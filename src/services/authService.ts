@@ -267,6 +267,8 @@ class AuthService {
     volume_alert_enabled?: boolean;
     volume_threshold?: number;
     volume_timeframe?: string;
+    volume_analysis_timeframe?: string;
+    notification_interval?: number;
   }): Promise<Subscription> {
     const response = await fetch(`${API_BASE_URL}/subscriptions`, {
       method: 'POST',

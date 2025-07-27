@@ -21,6 +21,8 @@ class ConnectionManager:
         self.active_connections: Dict[int, Dict[str, Any]] = {}
         # 存储订阅信息 {symbol: set(user_ids)}
         self.symbol_subscribers: Dict[str, Set[int]] = {}
+        # 通知历史记录：{user_id: {symbol: last_notification_time}}
+        self.notification_history: Dict[int, Dict[str, float]] = {}
         
     async def connect(self, websocket: WebSocket, user_id: int):
         """建立WebSocket连接"""
@@ -53,6 +55,10 @@ class ConnectionManager:
             
             del self.active_connections[user_id]
             logger.info(f"用户 {user_id} WebSocket连接已断开")
+
+            # 清理通知历史记录
+            if user_id in self.notification_history:
+                del self.notification_history[user_id]
     
     async def send_personal_message(self, message: dict, user_id: int):
         """发送个人消息"""
@@ -101,7 +107,27 @@ class ConnectionManager:
                     del self.symbol_subscribers[symbol]
             
             logger.info(f"用户 {user_id} 取消订阅了 {symbol} 的实时数据")
-    
+
+    def can_send_notification(self, user_id: int, symbol: str, interval_seconds: int) -> bool:
+        """检查是否可以发送通知（基于通知间隔）"""
+        import time
+        current_time = time.time()
+
+        # 初始化用户通知历史
+        if user_id not in self.notification_history:
+            self.notification_history[user_id] = {}
+
+        # 检查上次通知时间
+        last_notification = self.notification_history[user_id].get(symbol, 0)
+
+        # 如果距离上次通知的时间超过间隔，则可以发送
+        if current_time - last_notification >= interval_seconds:
+            # 更新最后通知时间
+            self.notification_history[user_id][symbol] = current_time
+            return True
+
+        return False
+
     def get_connection_stats(self) -> dict:
         """获取连接统计信息"""
         return {
@@ -234,41 +260,53 @@ class RealTimeDataService:
                         threshold = sub['volume_threshold']
                         
                         # 检查是否触发放量提醒
-                        volume_analysis = await self._get_volume_analysis(symbol, threshold)
+                        analysis_timeframe = sub.get('volume_analysis_timeframe', '5m')
+                        volume_analysis = await self._get_volume_analysis(symbol, threshold, analysis_timeframe)
 
                         if volume_analysis and volume_analysis['is_anomaly']:
-                            # 发送详细的放量提醒
-                            await manager.send_personal_message({
-                                'type': 'volume_alert',
-                                'symbol': symbol,
-                                'threshold': threshold,
-                                'message': f'{symbol} 触发放量提醒！当前成交量超过平均值 {volume_analysis["multiplier"]:.2f} 倍',
-                                'timestamp': datetime.utcnow().isoformat(),
-                                'analysis': {
-                                    'current_volume': volume_analysis['current_volume'],
-                                    'avg_volume': volume_analysis['avg_volume'],
-                                    'multiplier': volume_analysis['multiplier'],
-                                    'price': volume_analysis['price'],
-                                    'std_dev': volume_analysis['std_dev']
-                                }
-                            }, sub['user_id'])
+                            # 检查通知间隔
+                            notification_interval = sub.get('notification_interval', 120)
+                            user_id = sub['user_id']
 
-                            # 同时发送Telegram推送（如果用户启用了）
-                            try:
-                                from message_routes import send_volume_alert_telegram
-                                await send_volume_alert_telegram(
-                                    symbol=symbol,
-                                    volume_data={
+                            if manager.can_send_notification(user_id, symbol, notification_interval):
+                                # 发送详细的放量提醒
+                                await manager.send_personal_message({
+                                    'type': 'volume_alert',
+                                    'symbol': symbol,
+                                    'threshold': threshold,
+                                    'message': f'{symbol} 触发放量提醒！当前成交量超过平均值 {volume_analysis["multiplier"]:.2f} 倍 (基于{analysis_timeframe}K线)',
+                                    'timestamp': datetime.utcnow().isoformat(),
+                                    'analysis': {
                                         'current_volume': volume_analysis['current_volume'],
                                         'avg_volume': volume_analysis['avg_volume'],
                                         'multiplier': volume_analysis['multiplier'],
                                         'price': volume_analysis['price'],
-                                        'timeframe': '5m'
-                                    },
-                                    user_ids=[sub['user_id']]
-                                )
-                            except Exception as telegram_error:
-                                logger.error(f"Telegram推送失败: {telegram_error}")
+                                        'std_dev': volume_analysis['std_dev'],
+                                        'analysis_timeframe': analysis_timeframe,
+                                        'notification_interval': notification_interval
+                                    }
+                                }, user_id)
+
+                                # 同时发送Telegram推送（如果用户启用了）
+                                try:
+                                    from message_routes import send_volume_alert_telegram
+                                    await send_volume_alert_telegram(
+                                        symbol=symbol,
+                                        volume_data={
+                                            'current_volume': volume_analysis['current_volume'],
+                                            'avg_volume': volume_analysis['avg_volume'],
+                                            'multiplier': volume_analysis['multiplier'],
+                                            'price': volume_analysis['price'],
+                                            'timeframe': analysis_timeframe,
+                                            'analysis_timeframe': analysis_timeframe,
+                                            'notification_interval': notification_interval
+                                        },
+                                        user_ids=[user_id]
+                                    )
+                                except Exception as telegram_error:
+                                    logger.error(f"Telegram推送失败: {telegram_error}")
+                            else:
+                                logger.debug(f"跳过通知 {symbol} 用户 {user_id}：通知间隔未到 ({notification_interval}秒)")
                             
                     except Exception as e:
                         logger.error(f"检查放量提醒失败: {e}")
@@ -279,21 +317,21 @@ class RealTimeDataService:
                 logger.error(f"放量提醒检查失败: {e}")
                 await asyncio.sleep(30)
     
-    async def _check_volume_threshold(self, symbol: str, threshold: float) -> bool:
+    async def _check_volume_threshold(self, symbol: str, threshold: float, analysis_timeframe: str = '5m') -> bool:
         """检查是否触发放量阈值 - 使用与前端相同的逻辑"""
         try:
             # 获取历史OHLCV数据用于计算平均成交量和标准差
-            historical_data = await self._get_historical_ohlcv_data(symbol, '5m', 25)
+            historical_data = await self._get_historical_ohlcv_data(symbol, analysis_timeframe, 25)
 
             if not historical_data or len(historical_data) < 20:
-                logger.warning(f"历史数据不足，无法进行放量检测: {symbol}")
+                logger.warning(f"历史数据不足，无法进行放量检测: {symbol} ({analysis_timeframe})")
                 return False
 
             # 使用与前端PriceChart相同的放量检测逻辑
             volume_analysis = self._analyze_volume_anomaly(historical_data, threshold)
 
             if volume_analysis and volume_analysis['is_anomaly']:
-                logger.info(f"检测到放量异常: {symbol}, 倍数: {volume_analysis['multiplier']:.2f}x")
+                logger.info(f"检测到放量异常: {symbol} ({analysis_timeframe}), 倍数: {volume_analysis['multiplier']:.2f}x")
                 return True
 
             return False
@@ -302,17 +340,23 @@ class RealTimeDataService:
             logger.error(f"检查放量阈值失败: {e}")
             return False
 
-    async def _get_volume_analysis(self, symbol: str, threshold: float) -> dict:
+    async def _get_volume_analysis(self, symbol: str, threshold: float, analysis_timeframe: str = '5m') -> dict:
         """获取成交量分析结果"""
         try:
             # 获取历史OHLCV数据用于计算平均成交量和标准差
-            historical_data = await self._get_historical_ohlcv_data(symbol, '5m', 25)
+            historical_data = await self._get_historical_ohlcv_data(symbol, analysis_timeframe, 25)
 
             if not historical_data or len(historical_data) < 20:
                 return None
 
             # 使用与前端PriceChart相同的放量检测逻辑
-            return self._analyze_volume_anomaly(historical_data, threshold)
+            analysis_result = self._analyze_volume_anomaly(historical_data, threshold)
+
+            # 添加分析周期信息
+            if analysis_result:
+                analysis_result['analysis_timeframe'] = analysis_timeframe
+
+            return analysis_result
 
         except Exception as e:
             logger.error(f"获取成交量分析失败: {e}")

@@ -14,8 +14,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Database:
-    def __init__(self, db_path: str = "crypto_platform.db"):
+    def __init__(self, db_path: str = None):
+        # 支持环境变量配置数据库路径
+        if db_path is None:
+            import os
+            db_path = os.getenv('DATABASE_PATH', '/app/data/crypto_platform.db')
+
         self.db_path = db_path
+        # 确保数据目录存在
+        import os
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self.init_database()
     
     def get_connection(self):
@@ -154,6 +162,30 @@ class Database:
                     logger.info("Telegram字段添加完成")
             except Exception as e:
                 logger.warning(f"Telegram字段迁移失败（可能字段已存在）: {e}")
+
+            # 数据库迁移：为订阅表添加统计周期字段
+            try:
+                cursor = conn.execute("PRAGMA table_info(user_subscriptions)")
+                columns = [column[1] for column in cursor.fetchall()]
+
+                if 'volume_analysis_timeframe' not in columns:
+                    logger.info("执行数据库迁移：添加统计周期字段")
+                    conn.execute('ALTER TABLE user_subscriptions ADD COLUMN volume_analysis_timeframe VARCHAR(10) DEFAULT "5m"')
+                    logger.info("统计周期字段添加完成")
+            except Exception as e:
+                logger.warning(f"统计周期字段迁移失败（可能字段已存在）: {e}")
+
+            # 数据库迁移：为订阅表添加通知间隔字段
+            try:
+                cursor = conn.execute("PRAGMA table_info(user_subscriptions)")
+                columns = [column[1] for column in cursor.fetchall()]
+
+                if 'notification_interval' not in columns:
+                    logger.info("执行数据库迁移：添加通知间隔字段")
+                    conn.execute('ALTER TABLE user_subscriptions ADD COLUMN notification_interval INTEGER DEFAULT 120')
+                    logger.info("通知间隔字段添加完成")
+            except Exception as e:
+                logger.warning(f"通知间隔字段迁移失败（可能字段已存在）: {e}")
 
             conn.commit()
             logger.info("数据库初始化完成")
@@ -417,7 +449,8 @@ class Database:
         try:
             cursor = conn.execute('''
                 SELECT symbol, is_enabled, alert_settings, volume_alert_enabled,
-                       volume_threshold, volume_timeframe,
+                       volume_threshold, volume_timeframe, volume_analysis_timeframe,
+                       notification_interval,
                        datetime(created_at, 'localtime') as created_at,
                        datetime(updated_at, 'localtime') as updated_at
                 FROM user_subscriptions
@@ -430,6 +463,14 @@ class Database:
                 subscription = dict(row)
                 if subscription['alert_settings']:
                     subscription['alert_settings'] = json.loads(subscription['alert_settings'])
+
+                # 为旧记录提供默认值
+                if 'volume_analysis_timeframe' not in subscription or subscription['volume_analysis_timeframe'] is None:
+                    subscription['volume_analysis_timeframe'] = '5m'
+
+                if 'notification_interval' not in subscription or subscription['notification_interval'] is None:
+                    subscription['notification_interval'] = 120
+
                 subscriptions.append(subscription)
 
             return subscriptions
@@ -442,25 +483,29 @@ class Database:
 
     def update_subscription(self, user_id: int, symbol: str, is_enabled: bool = True,
                            alert_settings: Dict = None, volume_alert_enabled: bool = False,
-                           volume_threshold: float = 2.0, volume_timeframe: str = "5m") -> bool:
+                           volume_threshold: float = 2.0, volume_timeframe: str = "5m",
+                           volume_analysis_timeframe: str = "5m", notification_interval: int = 120) -> bool:
         """更新或创建币种订阅"""
         conn = self.get_connection()
         try:
             # 使用UPSERT操作
             conn.execute('''
                 INSERT INTO user_subscriptions (user_id, symbol, is_enabled, alert_settings,
-                                               volume_alert_enabled, volume_threshold, volume_timeframe, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                                               volume_alert_enabled, volume_threshold, volume_timeframe,
+                                               volume_analysis_timeframe, notification_interval, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(user_id, symbol) DO UPDATE SET
                     is_enabled = excluded.is_enabled,
                     alert_settings = excluded.alert_settings,
                     volume_alert_enabled = excluded.volume_alert_enabled,
                     volume_threshold = excluded.volume_threshold,
                     volume_timeframe = excluded.volume_timeframe,
+                    volume_analysis_timeframe = excluded.volume_analysis_timeframe,
+                    notification_interval = excluded.notification_interval,
                     updated_at = CURRENT_TIMESTAMP
             ''', (user_id, symbol.upper(), is_enabled,
                   json.dumps(alert_settings) if alert_settings else None,
-                  volume_alert_enabled, volume_threshold, volume_timeframe))
+                  volume_alert_enabled, volume_threshold, volume_timeframe, volume_analysis_timeframe, notification_interval))
 
             conn.commit()
             return True
@@ -496,7 +541,7 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.execute('''
-                SELECT user_id, symbol, volume_threshold, volume_timeframe
+                SELECT user_id, symbol, volume_threshold, volume_timeframe, volume_analysis_timeframe, notification_interval
                 FROM user_subscriptions
                 WHERE volume_alert_enabled = 1 AND is_enabled = 1
             ''')
@@ -507,7 +552,9 @@ class Database:
                     'user_id': row[0],
                     'symbol': row[1],
                     'volume_threshold': row[2] or 2.0,  # 默认2倍
-                    'volume_timeframe': row[3] or '5m'  # 默认5分钟
+                    'volume_timeframe': row[3] or '5m',  # 默认5分钟
+                    'volume_analysis_timeframe': row[4] or '5m',  # 默认5分钟
+                    'notification_interval': row[5] or 120  # 默认2分钟
                 })
 
             return subscriptions

@@ -63,6 +63,8 @@ class SubscriptionUpdate(BaseModel):
     volume_alert_enabled: bool = False
     volume_threshold: float = 2.0  # 放量倍数阈值，默认2倍
     volume_timeframe: str = "10s"  # 检测时间周期，默认10秒
+    volume_analysis_timeframe: str = "5m"  # 统计数据周期，默认5分钟
+    notification_interval: int = 120  # 通知间隔，默认2分钟
 
     @validator('symbol')
     def validate_symbol(cls, v):
@@ -83,6 +85,21 @@ class SubscriptionUpdate(BaseModel):
             raise ValueError(f'检测周期必须是: {", ".join(allowed_timeframes)}')
         return v
 
+    @validator('volume_analysis_timeframe')
+    def validate_volume_analysis_timeframe(cls, v):
+        allowed_analysis_timeframes = ['1m', '5m', '15m', '1h', '4h']
+        if v not in allowed_analysis_timeframes:
+            raise ValueError(f'统计数据周期必须是: {", ".join(allowed_analysis_timeframes)}')
+        return v
+
+    @validator('notification_interval')
+    def validate_notification_interval(cls, v):
+        if v < 30:
+            raise ValueError('通知间隔不能少于30秒')
+        if v > 3600:
+            raise ValueError('通知间隔不能超过1小时')
+        return v
+
 class SubscriptionResponse(BaseModel):
     symbol: str
     is_enabled: bool
@@ -90,6 +107,8 @@ class SubscriptionResponse(BaseModel):
     volume_alert_enabled: bool
     volume_threshold: float
     volume_timeframe: str
+    volume_analysis_timeframe: Optional[str] = "5m"
+    notification_interval: Optional[int] = 120
     created_at: str
     updated_at: str
 
@@ -398,7 +417,9 @@ async def update_subscription(
             alert_settings=subscription_data.alert_settings,
             volume_alert_enabled=subscription_data.volume_alert_enabled,
             volume_threshold=subscription_data.volume_threshold,
-            volume_timeframe=subscription_data.volume_timeframe
+            volume_timeframe=subscription_data.volume_timeframe,
+            volume_analysis_timeframe=getattr(subscription_data, 'volume_analysis_timeframe', '5m'),
+            notification_interval=getattr(subscription_data, 'notification_interval', 120)
         )
         
         if not success:

@@ -62,6 +62,8 @@ export interface Subscription {
   volume_alert_enabled: boolean;
   volume_threshold: number;
   volume_timeframe: string;
+  volume_analysis_timeframe?: string;
+  notification_interval?: number;
   created_at: string;
   updated_at: string;
 }
