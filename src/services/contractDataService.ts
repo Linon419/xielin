@@ -39,17 +39,20 @@ export interface ATRData {
   atr4h: number;
   atr15m: number;
   atr1h: number;
+  atr1d: number;
 
   // ATR最大值（用于保守计算）
   atr4h_max: number;
   atr15m_max: number;
   atr1h_max: number;
+  atr1d_max: number;
 
   // 详细分析数据
   analysis?: {
     '4h': ATRAnalysis;
     '15m': ATRAnalysis;
     '1h': ATRAnalysis;
+    '1d': ATRAnalysis;
   };
 
   // 交易所信息
@@ -58,6 +61,7 @@ export interface ATRData {
     '4h': string;
     '15m': string;
     '1h': string;
+    '1d': string;
   };
 }
 
@@ -210,6 +214,17 @@ class ContractDataService {
         // 缓存数据
         this.setCache(cacheKey, response.data);
         console.log(`[ContractDataService] ATR数据获取成功:`, response.data);
+
+        // 详细调试日志：检查ATR数据
+        console.log(`[ContractDataService] ${symbol} - 详细ATR数据:`, {
+          atr4h: response.data.atr4h,
+          atr1d: response.data.atr1d,
+          atr4h_max: response.data.atr4h_max,
+          atr1d_max: response.data.atr1d_max,
+          hasAtr1d: response.data.atr1d !== undefined,
+          hasAtr1dMax: response.data.atr1d_max !== undefined
+        });
+
         return response.data;
       }
 

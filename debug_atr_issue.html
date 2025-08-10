@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ATR杠杆计算调试</title>
+</head>
+<body>
+    <h1>ATR杠杆计算调试</h1>
+    <div id="output"></div>
+    
+    <script>
+        // 模拟策略引擎的杠杆计算逻辑
+        function calculateLeverage(input) {
+            const leverageAtrType = input.leverageAtrType || '4h';
+            
+            let atr, atrMax;
+            
+            if (leverageAtrType === '1d' && input.atr1d) {
+                atr = input.atr1d;
+                atrMax = input.atr1dMax;
+                console.log(`使用日线ATR计算杠杆: atr1d=${atr}, atr1dMax=${atrMax}`);
+            } else {
+                atr = input.atr4h;
+                atrMax = input.atr4hMax;
+                console.log(`使用4小时ATR计算杠杆: atr4h=${atr}, atr4hMax=${atrMax}`);
+            }
+            
+            const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+            const baseMultiplier = input.currentPrice / atrForCalculation;
+            const leverage = Math.floor(baseMultiplier);
+            
+            console.log(`杠杆计算: 当前价格=${input.currentPrice}, 使用ATR=${atrForCalculation}, 杠杆=${leverage}`);
+            
+            return leverage;
+        }
+        
+        // 测试数据
+        const testData = {
+            symbol: 'BTC',
+            currentPrice: 100000,
+            atr4h: 2000,
+            atr4hMax: 2500,
+            atr1d: 5000,
+            atr1dMax: 6000
+        };
+        
+        // 测试4小时ATR
+        const test4h = {
+            ...testData,
+            leverageAtrType: '4h'
+        };
+        
+        // 测试日线ATR
+        const test1d = {
+            ...testData,
+            leverageAtrType: '1d'
+        };
+        
+        console.log('=== 测试开始 ===');
+        console.log('测试数据:', testData);
+        
+        const leverage4h = calculateLeverage(test4h);
+        const leverage1d = calculateLeverage(test1d);
+        
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <h2>测试结果</h2>
+            <p><strong>测试数据:</strong></p>
+            <ul>
+                <li>当前价格: ${testData.currentPrice}</li>
+                <li>4小时ATR: ${testData.atr4h} (最大值: ${testData.atr4hMax})</li>
+                <li>日线ATR: ${testData.atr1d} (最大值: ${testData.atr1dMax})</li>
+            </ul>
+            
+            <p><strong>杠杆计算结果:</strong></p>
+            <ul>
+                <li>使用4小时ATR: ${leverage4h}倍 (预期: ${Math.floor(testData.currentPrice / testData.atr4hMax)}倍)</li>
+                <li>使用日线ATR: ${leverage1d}倍 (预期: ${Math.floor(testData.currentPrice / testData.atr1dMax)}倍)</li>
+            </ul>
+            
+            <p><strong>验证结果:</strong></p>
+            <ul>
+                <li>4小时ATR计算: ${leverage4h === Math.floor(testData.currentPrice / testData.atr4hMax) ? '✓ 正确' : '✗ 错误'}</li>
+                <li>日线ATR计算: ${leverage1d === Math.floor(testData.currentPrice / testData.atr1dMax) ? '✓ 正确' : '✗ 错误'}</li>
+            </ul>
+        `;
+        
+        console.log('=== 测试完成 ===');
+        console.log('4小时ATR杠杆:', leverage4h);
+        console.log('日线ATR杠杆:', leverage1d);
+        console.log('预期4小时ATR杠杆:', Math.floor(testData.currentPrice / testData.atr4hMax));
+        console.log('预期日线ATR杠杆:', Math.floor(testData.currentPrice / testData.atr1dMax));
+    </script>
+</body>
+</html>

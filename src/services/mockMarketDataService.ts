@@ -26,6 +26,7 @@ export interface ATRData {
   atr4h: number;
   atr15m: number;
   atr1h: number;
+  atr1d: number;
 }
 
 // 模拟的币种数据
@@ -191,11 +192,13 @@ class MockMarketDataService {
     const ohlcv4h = this.generateMockOHLCV(normalizedSymbol, 50, basePrice);
     const ohlcv15m = this.generateMockOHLCV(normalizedSymbol, 100, basePrice);
     const ohlcv1h = this.generateMockOHLCV(normalizedSymbol, 50, basePrice);
+    const ohlcv1d = this.generateMockOHLCV(normalizedSymbol, 30, basePrice);
 
     const atrData: ATRData = {
       atr4h: this.calculateATR(ohlcv4h, 14),
       atr15m: this.calculateATR(ohlcv15m, 14),
-      atr1h: this.calculateATR(ohlcv1h, 14)
+      atr1h: this.calculateATR(ohlcv1h, 14),
+      atr1d: this.calculateATR(ohlcv1d, 14)
     };
 
     // 缓存数据

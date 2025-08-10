@@ -68,12 +68,45 @@ export class StrategyEngine {
     return { errors, warnings };
   }
   
-  // 计算杠杆倍数（使用ATR最大值进行保守计算）
-  calculateLeverage(atr4h: number, currentPrice: number, atr4hMax?: number): number {
+  // 计算杠杆倍数（支持用户选择ATR类型）
+  calculateLeverage(input: StrategyInput): number {
+    const leverageAtrType = input.leverageAtrType || '4h'; // 默认使用4h ATR
+
+    console.log(`[StrategyEngine] ${input.symbol} - 杠杆计算开始，选择的ATR类型: ${leverageAtrType}`);
+    console.log(`[StrategyEngine] ${input.symbol} - 输入数据:`, {
+      atr4h: input.atr4h,
+      atr4hMax: input.atr4hMax,
+      atr1d: input.atr1d,
+      atr1dMax: input.atr1dMax,
+      leverageAtrType: input.leverageAtrType
+    });
+
+    let atr: number;
+    let atrMax: number | undefined;
+
+    if (leverageAtrType === '1d' && input.atr1d !== undefined && input.atr1d > 0) {
+      // 使用日线ATR计算杠杆
+      atr = input.atr1d;
+      atrMax = input.atr1dMax;
+      console.log(`[StrategyEngine] ${input.symbol} - 使用日线ATR计算杠杆: atr1d=${atr}, atr1dMax=${atrMax}`);
+    } else {
+      // 使用4小时ATR计算杠杆（默认）
+      atr = input.atr4h;
+      atrMax = input.atr4hMax;
+      console.log(`[StrategyEngine] ${input.symbol} - 使用4小时ATR计算杠杆: atr4h=${atr}, atr4hMax=${atrMax}`);
+
+      // 如果用户选择了日线ATR但数据不可用，给出警告
+      if (leverageAtrType === '1d') {
+        console.warn(`[StrategyEngine] ${input.symbol} - 用户选择日线ATR但数据不可用，回退到4小时ATR`);
+      }
+    }
+
     // 使用ATR最大值进行更保守的杠杆计算
-    const atrForCalculation = atr4hMax && atr4hMax > atr4h ? atr4hMax : atr4h;
-    const baseMultiplier = currentPrice / atrForCalculation;
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const baseMultiplier = input.currentPrice / atrForCalculation;
     const leverage = Math.floor(baseMultiplier); // 删除保守系数，直接使用基础倍数
+
+    console.log(`[StrategyEngine] ${input.symbol} - 杠杆计算: 当前价格=${input.currentPrice}, 使用ATR=${atrForCalculation}, 杠杆=${leverage}`);
 
     // 关闭风险限制，直接返回基于ATR计算的杠杆
     return leverage;
@@ -82,7 +115,7 @@ export class StrategyEngine {
   // 生成兜底区策略
   generateSupportStrategy(input: StrategyInput): StrategyOutput {
     const riskConfig = RISK_CONFIGS['balanced']; // 使用默认的平衡型配置
-    const leverage = this.calculateLeverage(input.atr4h, input.currentPrice, input.atr4hMax);
+    const leverage = this.calculateLeverage(input);
 
     // 使用ATR最大值进行更保守的滤波区间计算
     const atr4hForFilter = input.atr4hMax && input.atr4hMax > input.atr4h ? input.atr4hMax : input.atr4h;
@@ -122,6 +155,9 @@ export class StrategyEngine {
       atr4hMax: input.atr4hMax,
       atr15m: input.atr15m,
       atr15mMax: input.atr15mMax,
+      atr1d: input.atr1d,
+      atr1dMax: input.atr1dMax,
+      leverageAtrType: input.leverageAtrType,
 
       basic: {
         strategyName: `${input.symbol} - 兜底区滤波对冲策略`,
@@ -206,7 +242,7 @@ export class StrategyEngine {
   // 生成探顶区策略
   generateBreakoutStrategy(input: StrategyInput): StrategyOutput {
     const riskConfig = RISK_CONFIGS['balanced']; // 使用默认的平衡型配置
-    const leverage = this.calculateLeverage(input.atr4h, input.currentPrice, input.atr4hMax);
+    const leverage = this.calculateLeverage(input);
 
     // 计算观察和确认区间（用于后续扩展功能）
     // const observationZone = [input.currentPrice, input.schellingPoint];
@@ -245,6 +281,9 @@ export class StrategyEngine {
       atr4hMax: input.atr4hMax,
       atr15m: input.atr15m,
       atr15mMax: input.atr15mMax,
+      atr1d: input.atr1d,
+      atr1dMax: input.atr1dMax,
+      leverageAtrType: input.leverageAtrType,
 
       basic: {
         strategyName: `${input.symbol} - 探顶区突破跟踪策略`,

@@ -14,7 +14,8 @@ import {
   Divider,
   Progress,
   InputNumber,
-  Form
+  Form,
+  Select
 } from 'antd';
 import {
   ThunderboltOutlined,
@@ -30,6 +31,7 @@ import { contractDataService } from '../services/contractDataService';
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
 const { Panel } = Collapse;
+const { Option } = Select;
 
 interface BatchStrategyFormProps {
   onBatchGenerate: (strategies: StrategyOutput[]) => void;
@@ -84,6 +86,7 @@ const BatchStrategyForm: React.FC<BatchStrategyFormProps> = ({
     // 初始化处理项目
     const items: ProcessingItem[] = parseResult.items.map(item => ({
       ...item,
+      leverageAtrType: item.leverageAtrType || '4h', // 默认使用4h ATR
       status: 'pending',
       progress: 0
     }));
@@ -135,11 +138,30 @@ const BatchStrategyForm: React.FC<BatchStrategyFormProps> = ({
           low24h: contractData.low24h,
           atr4h: atrData.atr4h,
           atr15m: atrData.atr15m,
+          atr1d: atrData.atr1d,
           atr4hMax: atrData.atr4h_max,
           atr15mMax: atrData.atr15m_max,
+          atr1dMax: atrData.atr1d_max,
+          leverageAtrType: item.leverageAtrType || '4h', // 使用用户选择的ATR类型
           operationCycle: '1分钟',
           strictValidation: false // 批量模式使用宽松验证
         };
+
+        // 调试日志：检查ATR数据和用户选择
+        console.log(`[BatchStrategy] ${item.symbol} - 用户选择ATR类型: ${item.leverageAtrType || '4h'}`);
+        console.log(`[BatchStrategy] ${item.symbol} - ATR数据:`, {
+          atr4h: atrData.atr4h,
+          atr4hMax: atrData.atr4h_max,
+          atr1d: atrData.atr1d,
+          atr1dMax: atrData.atr1d_max,
+          hasAtr1d: atrData.atr1d !== undefined,
+          atr1dType: typeof atrData.atr1d
+        });
+        console.log(`[BatchStrategy] ${item.symbol} - 策略输入数据:`, {
+          leverageAtrType: strategyInput.leverageAtrType,
+          atr1d: strategyInput.atr1d,
+          atr1dMax: strategyInput.atr1dMax
+        });
 
         // 生成策略
         const result = strategyEngine.generateStrategy(strategyInput);
@@ -226,6 +248,35 @@ const BatchStrategyForm: React.FC<BatchStrategyFormProps> = ({
       dataIndex: 'schellingPoint',
       key: 'schellingPoint',
       render: (point: number) => point.toFixed(6)
+    },
+    {
+      title: (
+        <Space>
+          杠杆ATR类型
+          <Tooltip title="选择用于计算杠杆倍数的ATR类型。4小时ATR适合短期交易，日线ATR更保守适合长期持仓。">
+            <InfoCircleOutlined style={{ color: '#1890ff' }} />
+          </Tooltip>
+        </Space>
+      ),
+      dataIndex: 'leverageAtrType',
+      key: 'leverageAtrType',
+      width: 150,
+      render: (leverageAtrType: '4h' | '1d' | undefined, record: ProcessingItem, index: number) => (
+        <Select
+          value={leverageAtrType || '4h'}
+          style={{ width: '100%' }}
+          size="small"
+          onChange={(value: '4h' | '1d') => {
+            const newItems = [...processingItems];
+            newItems[index] = { ...newItems[index], leverageAtrType: value };
+            setProcessingItems(newItems);
+          }}
+          disabled={record.status === 'processing'}
+        >
+          <Option value="4h">4小时ATR</Option>
+          <Option value="1d">日线ATR（保守）</Option>
+        </Select>
+      )
     },
     {
       title: '状态',
@@ -317,6 +368,38 @@ const BatchStrategyForm: React.FC<BatchStrategyFormProps> = ({
                   style={{ width: 120 }}
                   addonAfter="个画幅"
                 />
+              </Form.Item>
+
+              <Form.Item
+                label={
+                  <Space>
+                    批量设置杠杆ATR类型
+                    <Tooltip title="一键为所有币种设置相同的杠杆计算ATR类型">
+                      <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                    </Tooltip>
+                  </Space>
+                }
+              >
+                <Space>
+                  <Select
+                    placeholder="选择ATR类型"
+                    style={{ width: 150 }}
+                    onChange={(value: '4h' | '1d') => {
+                      const newItems = processingItems.map(item => ({
+                        ...item,
+                        leverageAtrType: value
+                      }));
+                      setProcessingItems(newItems);
+                    }}
+                    disabled={processing}
+                  >
+                    <Option value="4h">4小时ATR</Option>
+                    <Option value="1d">日线ATR（保守）</Option>
+                  </Select>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    应用到所有币种
+                  </Text>
+                </Space>
               </Form.Item>
             </Form>
           </Panel>

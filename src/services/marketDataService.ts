@@ -26,6 +26,7 @@ export interface ATRData {
   atr4h: number;
   atr15m: number;
   atr1h: number;
+  atr1d: number;
 }
 
 // 支持的交易所配置
@@ -199,14 +200,15 @@ class MarketDataService {
         if (!exchange) continue;
 
         // 获取不同时间周期的OHLCV数据
-        const [ohlcv4h, ohlcv15m, ohlcv1h] = await Promise.all([
+        const [ohlcv4h, ohlcv15m, ohlcv1h, ohlcv1d] = await Promise.all([
           exchange.fetchOHLCV(normalizedSymbol, '4h', undefined, 50),
           exchange.fetchOHLCV(normalizedSymbol, '15m', undefined, 100),
-          exchange.fetchOHLCV(normalizedSymbol, '1h', undefined, 50)
+          exchange.fetchOHLCV(normalizedSymbol, '1h', undefined, 50),
+          exchange.fetchOHLCV(normalizedSymbol, '1d', undefined, 30)
         ]);
 
         // 转换数据格式
-        const convert = (data: number[][]): OHLCVData[] => 
+        const convert = (data: number[][]): OHLCVData[] =>
           data.map(([timestamp, open, high, low, close, volume]) => ({
             timestamp,
             open,
@@ -219,7 +221,8 @@ class MarketDataService {
         const atrData: ATRData = {
           atr4h: this.calculateATR(convert(ohlcv4h), 14),
           atr15m: this.calculateATR(convert(ohlcv15m), 14),
-          atr1h: this.calculateATR(convert(ohlcv1h), 14)
+          atr1h: this.calculateATR(convert(ohlcv1h), 14),
+          atr1d: this.calculateATR(convert(ohlcv1d), 14)
         };
 
         // 缓存数据

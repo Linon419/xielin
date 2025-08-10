@@ -8,8 +8,11 @@ export interface StrategyInput {
   low24h?: number;         // 24小时最低价格
   atr4h: number;           // 4小时ATR
   atr15m: number;          // 15分钟ATR
+  atr1d?: number;          // 日线ATR
   atr4hMax?: number;       // ATR 4小时最大值（用于保守计算）
   atr15mMax?: number;      // ATR 15分钟最大值（用于保守计算）
+  atr1dMax?: number;       // ATR 日线最大值（用于保守计算）
+  leverageAtrType?: '4h' | '1d'; // 杠杆计算使用的ATR类型，默认4h
   operationCycle?: string; // 操作周期
   atrLookback?: number;    // ATR回看画幅数量，默认3
   strictValidation?: boolean; // 是否严格验证，默认true，批量模式设为false
@@ -28,6 +31,9 @@ export interface StrategyOutput {
   atr4hMax?: number;        // 4小时ATR最大值
   atr15m?: number;          // 15分钟ATR
   atr15mMax?: number;       // 15分钟ATR最大值
+  atr1d?: number;           // 日线ATR
+  atr1dMax?: number;        // 日线ATR最大值
+  leverageAtrType?: '4h' | '1d'; // 杠杆计算使用的ATR类型
 
   basic: {
     strategyName: string;

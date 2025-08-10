@@ -11,7 +11,8 @@ import {
   Divider,
   Row,
   Col,
-  Statistic
+  Statistic,
+  Select
 } from 'antd';
 import {
   EyeOutlined,
@@ -28,6 +29,7 @@ import SubscribeButton from './SubscribeButton';
 import './BatchStrategyResult.css';
 
 const { Text } = Typography;
+const { Option } = Select;
 
 interface BatchStrategyResultProps {
   strategies: StrategyOutput[];
@@ -36,6 +38,47 @@ interface BatchStrategyResultProps {
 const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies }) => {
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyOutput | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+
+  // 跟踪每个策略的ATR类型选择，使用symbol作为key
+  const [atrTypeSelections, setAtrTypeSelections] = useState<Record<string, '4h' | '1d'>>(() => {
+    const initialSelections: Record<string, '4h' | '1d'> = {};
+    strategies.forEach(strategy => {
+      if (strategy.symbol) {
+        initialSelections[strategy.symbol] = strategy.leverageAtrType || '4h';
+      }
+    });
+    return initialSelections;
+  });
+
+  // 动态计算杠杆倍数
+  const calculateDynamicLeverage = (strategy: StrategyOutput, atrType: '4h' | '1d'): number => {
+    let atr: number, atrMax: number | undefined;
+
+    if (atrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+      atr = strategy.atr1d;
+      atrMax = strategy.atr1dMax;
+    } else {
+      atr = strategy.atr4h || 0;
+      atrMax = strategy.atr4hMax;
+    }
+
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const currentPrice = strategy.currentPrice || 0;
+
+    if (currentPrice > 0 && atrForCalculation > 0) {
+      return Math.floor(currentPrice / atrForCalculation);
+    }
+
+    return strategy.basic?.recommendedLeverage || 0;
+  };
+
+  // 更新ATR类型选择
+  const updateAtrTypeSelection = (symbol: string, atrType: '4h' | '1d') => {
+    setAtrTypeSelections(prev => ({
+      ...prev,
+      [symbol]: atrType
+    }));
+  };
 
   // 根据图表数量计算自适应列宽和间距
   const getResponsiveSpan = (totalCount: number) => {
@@ -227,40 +270,78 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     },
     {
       title: '建议杠杆',
-      dataIndex: ['basic', 'recommendedLeverage'],
       key: 'leverage',
-      render: (leverage: number, record: StrategyOutput) => {
-        const atr4h = record.atr4hMax || record.atr4h || 0;
+      width: 200,
+      render: (_: any, record: StrategyOutput) => {
+        const symbol = record.symbol || '';
+        const selectedAtrType = atrTypeSelections[symbol] || '4h';
+        const dynamicLeverage = calculateDynamicLeverage(record, selectedAtrType);
+        const atrTypeLabel = selectedAtrType === '1d' ? '日线' : '4小时';
+
+        let atr: number, atrMax: number | undefined;
+        if (selectedAtrType === '1d') {
+          atr = record.atr1d || 0;
+          atrMax = record.atr1dMax;
+        } else {
+          atr = record.atr4h || 0;
+          atrMax = record.atr4hMax;
+        }
+
+        const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
         const currentPrice = record.currentPrice || 0;
-        const baseMultiplier = currentPrice > 0 && atr4h > 0 ? currentPrice / atr4h : 0;
+        const baseMultiplier = currentPrice > 0 && atrForCalculation > 0 ? currentPrice / atrForCalculation : 0;
 
         return (
-          <Tooltip
-            title={
-              <div>
-                <div><strong>杠杆计算公式：</strong></div>
-                <div>基础倍数 = 当前价格 ÷ 4小时ATR最大值</div>
-                <div>= {currentPrice.toFixed(2)} ÷ {atr4h.toFixed(6)}</div>
-                <div>= {baseMultiplier.toFixed(2)}</div>
-                <div style={{ marginTop: 8 }}>
-                  <div>建议杠杆 = Math.floor(基础倍数)</div>
-                  <div>= Math.floor({baseMultiplier.toFixed(2)})</div>
-                  <div>= <strong>{leverage}倍</strong></div>
-                </div>
-              </div>
-            }
-            placement="top"
-          >
-            <Tag
-              color={leverage > 25 ? 'red' : leverage > 10 ? 'orange' : 'green'}
-              style={{ cursor: 'help' }}
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Select
+              value={selectedAtrType}
+              size="small"
+              style={{ width: '100%' }}
+              onChange={(value: '4h' | '1d') => updateAtrTypeSelection(symbol, value)}
             >
-              {leverage}x
-            </Tag>
-          </Tooltip>
+              <Option value="4h">4小时ATR</Option>
+              <Option value="1d">日线ATR（保守）</Option>
+            </Select>
+
+            <Tooltip
+              title={
+                <div>
+                  <div><strong>杠杆计算公式：</strong></div>
+                  <div>基础倍数 = 当前价格 ÷ {atrTypeLabel}ATR最大值</div>
+                  <div>= {currentPrice.toFixed(2)} ÷ {atrForCalculation.toFixed(6)}</div>
+                  <div>= {baseMultiplier.toFixed(2)}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <div>建议杠杆 = Math.floor(基础倍数)</div>
+                    <div>= Math.floor({baseMultiplier.toFixed(2)})</div>
+                    <div>= <strong>{dynamicLeverage}倍</strong></div>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+                    使用{atrTypeLabel}ATR计算杠杆
+                  </div>
+                </div>
+              }
+              placement="top"
+            >
+              <Tag
+                color={dynamicLeverage > 25 ? 'red' : dynamicLeverage > 10 ? 'orange' : 'green'}
+                style={{ cursor: 'help', width: '100%', textAlign: 'center' }}
+              >
+                {dynamicLeverage}x
+                {selectedAtrType === '1d' && (
+                  <span style={{ fontSize: '10px', marginLeft: '2px' }}>(1d)</span>
+                )}
+              </Tag>
+            </Tooltip>
+          </Space>
         );
       },
-      sorter: (a: StrategyOutput, b: StrategyOutput) => a.basic.recommendedLeverage - b.basic.recommendedLeverage
+      sorter: (a: StrategyOutput, b: StrategyOutput) => {
+        const aSymbol = a.symbol || '';
+        const bSymbol = b.symbol || '';
+        const aLeverage = calculateDynamicLeverage(a, atrTypeSelections[aSymbol] || '4h');
+        const bLeverage = calculateDynamicLeverage(b, atrTypeSelections[bSymbol] || '4h');
+        return aLeverage - bLeverage;
+      }
     },
     {
       title: '入场价格',
@@ -342,6 +423,36 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
       sorter: (a: StrategyOutput, b: StrategyOutput) => {
         const aA = a.atr4h || 0;
         const bA = b.atr4h || 0;
+        return aA - bA;
+      }
+    },
+
+    {
+      title: '日线ATR',
+      key: 'atr1d',
+      render: (_: any, record: StrategyOutput) => {
+        // 从原始输入数据获取日线ATR信息
+        const atr1d = record.atr1d;
+        const atr1dMax = record.atr1dMax;
+        if (atr1d) {
+          return (
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                {atr1d.toFixed(6)}
+              </div>
+              {atr1dMax && atr1dMax > atr1d && (
+                <div style={{ fontSize: '11px', color: '#fa8c16' }}>
+                  最大: {atr1dMax.toFixed(6)}
+                </div>
+              )}
+            </div>
+          );
+        }
+        return 'N/A';
+      },
+      sorter: (a: StrategyOutput, b: StrategyOutput) => {
+        const aA = a.atr1d || 0;
+        const bA = b.atr1d || 0;
         return aA - bA;
       }
     },
@@ -455,13 +566,41 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
 
         <Divider />
 
+        {/* 批量ATR类型设置 */}
+        <Row style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <Space>
+              <Text strong>批量设置杠杆ATR类型：</Text>
+              <Select
+                placeholder="选择ATR类型"
+                style={{ width: 200 }}
+                onChange={(value: '4h' | '1d') => {
+                  const newSelections: Record<string, '4h' | '1d'> = {};
+                  strategies.forEach(strategy => {
+                    if (strategy.symbol) {
+                      newSelections[strategy.symbol] = value;
+                    }
+                  });
+                  setAtrTypeSelections(newSelections);
+                }}
+              >
+                <Option value="4h">全部使用4小时ATR</Option>
+                <Option value="1d">全部使用日线ATR（保守）</Option>
+              </Select>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                一键为所有策略设置相同的ATR类型
+              </Text>
+            </Space>
+          </Col>
+        </Row>
+
         {/* 策略列表 */}
         <Table
           dataSource={strategies}
           columns={columns}
           rowKey={(record) => record.symbol || Math.random().toString()}
           size="small"
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1350 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

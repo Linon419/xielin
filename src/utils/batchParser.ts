@@ -7,6 +7,7 @@ export interface BatchItem {
   symbol: string;
   type: '兜底区' | '探顶区';
   schellingPoint: number;
+  leverageAtrType?: '4h' | '1d'; // 杠杆计算ATR类型
   originalText: string;
 }
 
@@ -82,14 +83,12 @@ export class BatchParser {
 
     // 查找策略类型
     let strategyType: '兜底区' | '探顶区' | null = null;
-    let typeIndex = -1;
 
     for (let i = 1; i < parts.length - 1; i++) {
       const part = parts[i];
       for (const [type, keywords] of Object.entries(this.TYPE_KEYWORDS)) {
         if (keywords.some(keyword => part.includes(keyword))) {
           strategyType = type as '兜底区' | '探顶区';
-          typeIndex = i;
           break;
         }
       }
@@ -166,6 +165,7 @@ export class BatchParser {
     return `CTC 谢林兜底区 0.81
 SAHARA 谢林兜底区 0.088
 PENGU 谢林探顶区 0.45
+UXLINK 兜底区 0.75
 BTC 兜底区 42000
 ETH 探顶区 3200.5`;
   }
@@ -182,6 +182,9 @@ ETH 探顶区 3200.5`;
       '  - 兜底区：兜底区、兜底、底部、支撑、底',
       '  - 探顶区：探顶区、探顶、顶部、阻力、顶、突破',
       '谢林点：正数，支持小数（如 0.81, 42000, 3200.5）',
+      '杠杆ATR类型：解析后可在表格中为每个币种单独选择',
+      '  - 4小时ATR：适合短期交易（默认）',
+      '  - 日线ATR：更保守，适合长期持仓',
       '示例：',
       '  CTC 谢林兜底区 0.81',
       '  PENGU 探顶区 0.45',

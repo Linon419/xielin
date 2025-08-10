@@ -83,9 +83,10 @@ const StrategyForm: React.FC<StrategyFormProps> = ({ onSubmit, loading, errors }
         setATRData(atr);
         form.setFieldsValue({
           atr4h: atr.atr4h,
-          atr15m: atr.atr15m
+          atr15m: atr.atr15m,
+          atr1d: atr.atr1d
         });
-        console.log(`[StrategyForm] 设置ATR数据: 4h=${atr.atr4h}, 15m=${atr.atr15m}`);
+        console.log(`[StrategyForm] 设置ATR数据: 4h=${atr.atr4h}, 15m=${atr.atr15m}, 1d=${atr.atr1d}`);
       }
 
       if (contract || atr) {
@@ -132,8 +133,11 @@ const StrategyForm: React.FC<StrategyFormProps> = ({ onSubmit, loading, errors }
       low24h: contractData?.low24h,       // 传递24小时最低价格
       atr4h: values.atr4h,
       atr15m: values.atr15m,
+      atr1d: atrData?.atr1d,           // 传递日线ATR
       atr4hMax: atrData?.atr4h_max,    // 传递ATR最大值
       atr15mMax: atrData?.atr15m_max,  // 传递ATR最大值
+      atr1dMax: atrData?.atr1d_max,    // 传递日线ATR最大值
+      leverageAtrType: values.leverageAtrType || '4h', // 杠杆计算ATR类型
       operationCycle: values.operationCycle || '1分钟'
     };
     onSubmit(strategyInput);
@@ -407,6 +411,50 @@ const StrategyForm: React.FC<StrategyFormProps> = ({ onSubmit, loading, errors }
               min={0}
             />
           </Form.Item>
+
+          <Form.Item
+            label={
+              <Space>
+                日线ATR
+                <Tooltip title="日线平均真实波幅，可用于计算杠杆倍数（更保守）">
+                  <InfoCircleOutlined style={{ color: '#999' }} />
+                </Tooltip>
+                {loadingData && <Spin size="small" />}
+                {atrData && !loadingData && (
+                  <Tooltip title={`数据已自动获取${atrData.exchanges?.['1d'] ? ` (来源: ${atrData.exchanges['1d']})` : ''}`}>
+                    <ThunderboltOutlined style={{ color: '#52c41a' }} />
+                  </Tooltip>
+                )}
+                {atrData?.exchanges?.['1d'] && !loadingData && (
+                  <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>
+                    [{atrData.exchanges['1d']}]
+                  </span>
+                )}
+                {atrData?.atr1d_max && !loadingData && (
+                  <Tooltip title={`近3根K线最大值: ${atrData.atr1d_max.toFixed(6)} (用于保守计算)`}>
+                    <span style={{
+                      fontSize: '12px',
+                      color: atrData.atr1d_max > atrData.atr1d ? '#ff7875' : '#52c41a',
+                      marginLeft: '4px'
+                    }}>
+                      [Max: {atrData.atr1d_max.toFixed(6)}]
+                    </span>
+                  </Tooltip>
+                )}
+              </Space>
+            }
+            name="atr1d"
+            validateStatus={getFieldError('atr1d') ? 'error' : ''}
+            help={getFieldError('atr1d')}
+          >
+            <InputNumber
+              placeholder="0.000000"
+              style={{ width: '100%' }}
+              step={0.000001}
+              precision={6}
+              min={0}
+            />
+          </Form.Item>
         </div>
 
         {/* 高级选项 */}
@@ -434,6 +482,24 @@ const StrategyForm: React.FC<StrategyFormProps> = ({ onSubmit, loading, errors }
                 <Option value="5分钟">5分钟</Option>
                 <Option value="15分钟">15分钟</Option>
                 <Option value="1小时">1小时</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              label={
+                <Space>
+                  杠杆计算ATR类型
+                  <Tooltip title="选择用于计算杠杆倍数的ATR类型。4小时ATR适合短期交易，日线ATR更保守适合长期持仓。">
+                    <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                  </Tooltip>
+                </Space>
+              }
+              name="leverageAtrType"
+              initialValue="4h"
+            >
+              <Select>
+                <Option value="4h">4小时ATR（默认）</Option>
+                <Option value="1d">日线ATR（保守）</Option>
               </Select>
             </Form.Item>
 

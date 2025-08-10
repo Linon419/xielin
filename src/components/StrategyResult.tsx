@@ -13,7 +13,8 @@ import {
   Space,
   Divider,
   Alert,
-  Tooltip
+  Tooltip,
+  Select
 } from 'antd';
 import {
   RiseOutlined,
@@ -26,6 +27,7 @@ import SubscribeButton from './SubscribeButton';
 
 const { TabPane } = Tabs;
 const { Step } = Steps;
+const { Option } = Select;
 
 interface StrategyResultProps {
   strategy: StrategyOutput;
@@ -33,6 +35,31 @@ interface StrategyResultProps {
 
 const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedAtrType, setSelectedAtrType] = useState<'4h' | '1d'>(strategy.leverageAtrType || '4h');
+
+  // 动态计算杠杆倍数
+  const calculateDynamicLeverage = (atrType: '4h' | '1d'): number => {
+    let atr: number, atrMax: number | undefined;
+
+    if (atrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+      atr = strategy.atr1d;
+      atrMax = strategy.atr1dMax;
+    } else {
+      atr = strategy.atr4h || 0;
+      atrMax = strategy.atr4hMax;
+    }
+
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const currentPrice = strategy.currentPrice || 0;
+
+    if (currentPrice > 0 && atrForCalculation > 0) {
+      return Math.floor(currentPrice / atrForCalculation);
+    }
+
+    return strategy.basic?.recommendedLeverage || 0;
+  };
+
+  const dynamicLeverage = calculateDynamicLeverage(selectedAtrType);
 
   // 获取风险等级颜色
   const getRiskColor = (level: string) => {
@@ -85,33 +112,67 @@ const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
         {/* 关键指标 */}
         <Row gutter={[16, 16]}>
           <Col xs={12} sm={6}>
-            <Tooltip
-              title={
-                <div>
-                  <div><strong>杠杆计算公式：</strong></div>
-                  <div>基础倍数 = 当前价格 ÷ 4小时ATR最大值</div>
-                  <div>= {strategy.currentPrice?.toFixed(2)} ÷ {strategy.atr4hMax?.toFixed(6) || strategy.atr4h?.toFixed(6) || 'N/A'}</div>
-                  <div>= {strategy.currentPrice && (strategy.atr4hMax || strategy.atr4h) ?
-                    (strategy.currentPrice / (strategy.atr4hMax || strategy.atr4h || 1)).toFixed(2) : 'N/A'}</div>
-                  <div style={{ marginTop: 8 }}>
-                    <div>建议杠杆 = Math.floor(基础倍数)</div>
-                    <div>= Math.floor({strategy.currentPrice && (strategy.atr4hMax || strategy.atr4h) ?
-                      (strategy.currentPrice / (strategy.atr4hMax || strategy.atr4h || 1)).toFixed(2) : 'N/A'})</div>
-                    <div>= <strong>{strategy.basic.recommendedLeverage}倍</strong></div>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Select
+                value={selectedAtrType}
+                size="small"
+                style={{ width: '100%' }}
+                onChange={(value: '4h' | '1d') => setSelectedAtrType(value)}
+              >
+                <Option value="4h">4小时ATR</Option>
+                <Option value="1d">日线ATR（保守）</Option>
+              </Select>
+
+              <Tooltip
+                title={
+                  <div>
+                    <div><strong>杠杆计算公式：</strong></div>
+                    {(() => {
+                      const atrTypeLabel = selectedAtrType === '1d' ? '日线' : '4小时';
+                      let atr: number, atrMax: number | undefined;
+
+                      if (selectedAtrType === '1d') {
+                        atr = strategy.atr1d || 0;
+                        atrMax = strategy.atr1dMax;
+                      } else {
+                        atr = strategy.atr4h || 0;
+                        atrMax = strategy.atr4hMax;
+                      }
+
+                      const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+                      const baseMultiplier = strategy.currentPrice && atrForCalculation ?
+                        strategy.currentPrice / atrForCalculation : 0;
+
+                      return (
+                        <>
+                          <div>基础倍数 = 当前价格 ÷ {atrTypeLabel}ATR最大值</div>
+                          <div>= {strategy.currentPrice?.toFixed(2)} ÷ {atrForCalculation.toFixed(6)}</div>
+                          <div>= {baseMultiplier.toFixed(2)}</div>
+                          <div style={{ marginTop: 8 }}>
+                            <div>建议杠杆 = Math.floor(基础倍数)</div>
+                            <div>= Math.floor({baseMultiplier.toFixed(2)})</div>
+                            <div>= <strong>{dynamicLeverage}倍</strong></div>
+                          </div>
+                          <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+                            使用{atrTypeLabel}ATR计算杠杆
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
+                }
+                placement="top"
+              >
+                <div style={{ cursor: 'help' }}>
+                  <Statistic
+                    title="推荐杠杆"
+                    value={dynamicLeverage}
+                    suffix="倍"
+                    prefix={<RiseOutlined />}
+                  />
                 </div>
-              }
-              placement="top"
-            >
-              <div style={{ cursor: 'help' }}>
-                <Statistic
-                  title="推荐杠杆"
-                  value={strategy.basic.recommendedLeverage}
-                  suffix="倍"
-                  prefix={<RiseOutlined />}
-                />
-              </div>
-            </Tooltip>
+              </Tooltip>
+            </Space>
           </Col>
           <Col xs={12} sm={6}>
             {strategy.operations.riskControl.atrInfo && (

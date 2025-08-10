@@ -485,28 +485,33 @@ async def get_contract_atr_data(symbol: str, lookback: int = 3):
         ohlcv_4h, exchange_4h = await fetch_from_exchanges("fetch_ohlcv", symbol, "4h", None, 50)
         ohlcv_15m, exchange_15m = await fetch_from_exchanges("fetch_ohlcv", symbol, "15m", None, 100)
         ohlcv_1h, exchange_1h = await fetch_from_exchanges("fetch_ohlcv", symbol, "1h", None, 50)
+        ohlcv_1d, exchange_1d = await fetch_from_exchanges("fetch_ohlcv", symbol, "1d", None, 30)
 
         # 使用专业指标缓存计算ATR和分析数据
         atr_4h_analysis = indicator_cache.get_atr_analysis(symbol, "4h", ohlcv_4h, period=14, lookback=lookback)
         atr_15m_analysis = indicator_cache.get_atr_analysis(symbol, "15m", ohlcv_15m, period=14, lookback=lookback)
         atr_1h_analysis = indicator_cache.get_atr_analysis(symbol, "1h", ohlcv_1h, period=14, lookback=lookback)
+        atr_1d_analysis = indicator_cache.get_atr_analysis(symbol, "1d", ohlcv_1d, period=14, lookback=lookback)
 
         atr_data = {
             # 当前ATR值
             "atr4h": atr_4h_analysis['current_atr'],
             "atr15m": atr_15m_analysis['current_atr'],
             "atr1h": atr_1h_analysis['current_atr'],
+            "atr1d": atr_1d_analysis['current_atr'],
 
             # ATR最大值（用于保守的杠杆和止盈计算）
             "atr4h_max": atr_4h_analysis['atr_max'],
             "atr15m_max": atr_15m_analysis['atr_max'],
             "atr1h_max": atr_1h_analysis['atr_max'],
+            "atr1d_max": atr_1d_analysis['atr_max'],
 
             # ATR分析数据
             "analysis": {
                 "4h": atr_4h_analysis,
                 "15m": atr_15m_analysis,
-                "1h": atr_1h_analysis
+                "1h": atr_1h_analysis,
+                "1d": atr_1d_analysis
             },
 
             # 交易所信息
@@ -514,9 +519,13 @@ async def get_contract_atr_data(symbol: str, lookback: int = 3):
             "exchanges": {
                 "4h": exchange_4h,
                 "15m": exchange_15m,
-                "1h": exchange_1h
+                "1h": exchange_1h,
+                "1d": exchange_1d
             }
         }
+
+        # 调试日志：检查ATR数据
+        logger.info(f"[ATR] {symbol} - ATR数据: 4h={atr_data['atr4h']:.6f}, 1d={atr_data['atr1d']:.6f}, 4h_max={atr_data['atr4h_max']:.6f}, 1d_max={atr_data['atr1d_max']:.6f}")
 
         # 缓存数据
         set_cache(cache_key, atr_data)
