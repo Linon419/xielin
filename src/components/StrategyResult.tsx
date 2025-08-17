@@ -36,6 +36,7 @@ interface StrategyResultProps {
 const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedAtrType, setSelectedAtrType] = useState<'4h' | '1d'>(strategy.leverageAtrType || '4h');
+  const [filterBaseType, setFilterBaseType] = useState<'currentPrice' | 'schellingPoint'>('schellingPoint');
 
   // 动态计算杠杆倍数
   const calculateDynamicLeverage = (atrType: '4h' | '1d'): number => {
@@ -59,7 +60,35 @@ const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
     return strategy.basic?.recommendedLeverage || 0;
   };
 
+  // 计算滤波区间
+  const calculateFilterRange = (atrType: '4h' | '1d', baseType: 'currentPrice' | 'schellingPoint') => {
+    let atr: number, atrMax: number | undefined;
+
+    if (atrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+      atr = strategy.atr1d;
+      atrMax = strategy.atr1dMax;
+    } else {
+      atr = strategy.atr4h || 0;
+      atrMax = strategy.atr4hMax;
+    }
+
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const basePrice = baseType === 'currentPrice' ? (strategy.currentPrice || 0) : (strategy.schellingPoint || 0);
+
+    if (basePrice > 0 && atrForCalculation > 0) {
+      return {
+        lower: basePrice - atrForCalculation,
+        upper: basePrice + atrForCalculation,
+        basePrice,
+        atr: atrForCalculation
+      };
+    }
+
+    return null;
+  };
+
   const dynamicLeverage = calculateDynamicLeverage(selectedAtrType);
+  const filterRange = calculateFilterRange(selectedAtrType, filterBaseType);
 
   // 获取风险等级颜色
   const getRiskColor = (level: string) => {
@@ -217,6 +246,61 @@ const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
               prefix={<DollarOutlined />}
             />
           </Col>
+
+          <Col xs={24} sm={12}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>滤波区间基准：</span>
+                <Select
+                  value={filterBaseType}
+                  size="small"
+                  style={{ width: '120px' }}
+                  onChange={(value: 'currentPrice' | 'schellingPoint') => setFilterBaseType(value)}
+                >
+                  <Option value="schellingPoint">谢林点</Option>
+                  <Option value="currentPrice">当前价格</Option>
+                </Select>
+              </div>
+
+              {filterRange && (
+                <Tooltip
+                  title={
+                    <div>
+                      <div><strong>滤波区间计算公式：</strong></div>
+                      <div>基准价格 = {filterBaseType === 'currentPrice' ? '当前价格' : '谢林点'}</div>
+                      <div>使用ATR = {selectedAtrType === '1d' ? '日线' : '4小时'}ATR最大值</div>
+                      <div>下限 = {filterRange.basePrice.toFixed(6)} - {filterRange.atr.toFixed(6)}</div>
+                      <div>上限 = {filterRange.basePrice.toFixed(6)} + {filterRange.atr.toFixed(6)}</div>
+                      <div style={{ marginTop: 8 }}>
+                        <div>滤波区间：<strong>{filterRange.lower.toFixed(6)} - {filterRange.upper.toFixed(6)}</strong></div>
+                      </div>
+                    </div>
+                  }
+                  placement="top"
+                >
+                  <div style={{ cursor: 'help', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '6px', backgroundColor: '#fafafa' }}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                      滤波区间 ({selectedAtrType === '1d' ? '日线' : '4小时'}ATR)
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1890ff' }}>
+                      {filterRange.lower.toFixed(6)} - {filterRange.upper.toFixed(6)}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                      基于{filterBaseType === 'currentPrice' ? '当前价格' : '谢林点'} ± ATR
+                    </div>
+                  </div>
+                </Tooltip>
+              )}
+
+              {!filterRange && (
+                <div style={{ padding: '8px', border: '1px solid #d9d9d9', borderRadius: '6px', backgroundColor: '#f5f5f5' }}>
+                  <div style={{ fontSize: '12px', color: '#999' }}>滤波区间</div>
+                  <div style={{ fontSize: '14px', color: '#999' }}>数据不可用</div>
+                </div>
+              )}
+            </Space>
+          </Col>
+
           {strategy.high24h && (
             <Col xs={12} sm={6}>
               <Statistic

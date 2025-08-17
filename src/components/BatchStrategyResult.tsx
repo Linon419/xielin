@@ -50,6 +50,17 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     return initialSelections;
   });
 
+  // 跟踪每个策略的滤波区间基准类型选择
+  const [filterBaseSelections, setFilterBaseSelections] = useState<Record<string, 'currentPrice' | 'schellingPoint'>>(() => {
+    const initialSelections: Record<string, 'currentPrice' | 'schellingPoint'> = {};
+    strategies.forEach(strategy => {
+      if (strategy.symbol) {
+        initialSelections[strategy.symbol] = 'schellingPoint'; // 默认使用谢林点
+      }
+    });
+    return initialSelections;
+  });
+
   // 动态计算杠杆倍数
   const calculateDynamicLeverage = (strategy: StrategyOutput, atrType: '4h' | '1d'): number => {
     let atr: number, atrMax: number | undefined;
@@ -72,11 +83,46 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     return strategy.basic?.recommendedLeverage || 0;
   };
 
+  // 计算滤波区间
+  const calculateFilterRange = (strategy: StrategyOutput, atrType: '4h' | '1d', baseType: 'currentPrice' | 'schellingPoint') => {
+    let atr: number, atrMax: number | undefined;
+
+    if (atrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+      atr = strategy.atr1d;
+      atrMax = strategy.atr1dMax;
+    } else {
+      atr = strategy.atr4h || 0;
+      atrMax = strategy.atr4hMax;
+    }
+
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const basePrice = baseType === 'currentPrice' ? (strategy.currentPrice || 0) : (strategy.schellingPoint || 0);
+
+    if (basePrice > 0 && atrForCalculation > 0) {
+      return {
+        lower: basePrice - atrForCalculation,
+        upper: basePrice + atrForCalculation,
+        basePrice,
+        atr: atrForCalculation
+      };
+    }
+
+    return null;
+  };
+
   // 更新ATR类型选择
   const updateAtrTypeSelection = (symbol: string, atrType: '4h' | '1d') => {
     setAtrTypeSelections(prev => ({
       ...prev,
       [symbol]: atrType
+    }));
+  };
+
+  // 更新滤波区间基准类型选择
+  const updateFilterBaseSelection = (symbol: string, baseType: 'currentPrice' | 'schellingPoint') => {
+    setFilterBaseSelections(prev => ({
+      ...prev,
+      [symbol]: baseType
     }));
   };
 
@@ -351,6 +397,94 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
       sorter: (a: StrategyOutput, b: StrategyOutput) => a.operations.entry.price - b.operations.entry.price
     },
     {
+      title: '滤波区间',
+      key: 'filterRange',
+      width: 200,
+      render: (_: any, record: StrategyOutput) => {
+        const symbol = record.symbol || '';
+        const selectedAtrType = atrTypeSelections[symbol] || '4h';
+        const selectedBaseType = filterBaseSelections[symbol] || 'schellingPoint';
+        const filterRange = calculateFilterRange(record, selectedAtrType, selectedBaseType);
+
+        return (
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Select
+              value={selectedBaseType}
+              size="small"
+              style={{ width: '100%' }}
+              onChange={(value: 'currentPrice' | 'schellingPoint') => updateFilterBaseSelection(symbol, value)}
+            >
+              <Option value="schellingPoint">谢林点基准</Option>
+              <Option value="currentPrice">当前价格基准</Option>
+            </Select>
+
+            {filterRange && (
+              <Tooltip
+                title={
+                  <div>
+                    <div><strong>滤波区间计算公式：</strong></div>
+                    <div>基准价格 = {selectedBaseType === 'currentPrice' ? '当前价格' : '谢林点'}</div>
+                    <div>使用ATR = {selectedAtrType === '1d' ? '日线' : '4小时'}ATR最大值</div>
+                    <div>下限 = {filterRange.basePrice.toFixed(6)} - {filterRange.atr.toFixed(6)}</div>
+                    <div>上限 = {filterRange.basePrice.toFixed(6)} + {filterRange.atr.toFixed(6)}</div>
+                    <div style={{ marginTop: 8 }}>
+                      <div>滤波区间：<strong>{filterRange.lower.toFixed(6)} - {filterRange.upper.toFixed(6)}</strong></div>
+                    </div>
+                  </div>
+                }
+                placement="top"
+              >
+                <div style={{
+                  cursor: 'help',
+                  padding: '4px 8px',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: '4px',
+                  backgroundColor: '#fafafa',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>
+                    {selectedAtrType === '1d' ? '日线' : '4小时'}ATR区间
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1890ff' }}>
+                    {filterRange.lower.toFixed(4)} - {filterRange.upper.toFixed(4)}
+                  </div>
+                </div>
+              </Tooltip>
+            )}
+
+            {!filterRange && (
+              <div style={{
+                padding: '4px 8px',
+                border: '1px solid #d9d9d9',
+                borderRadius: '4px',
+                backgroundColor: '#f5f5f5',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '12px', color: '#999' }}>数据不可用</div>
+              </div>
+            )}
+          </Space>
+        );
+      },
+      sorter: (a: StrategyOutput, b: StrategyOutput) => {
+        const aSymbol = a.symbol || '';
+        const bSymbol = b.symbol || '';
+        const aAtrType = atrTypeSelections[aSymbol] || '4h';
+        const bAtrType = atrTypeSelections[bSymbol] || '4h';
+        const aBaseType = filterBaseSelections[aSymbol] || 'schellingPoint';
+        const bBaseType = filterBaseSelections[bSymbol] || 'schellingPoint';
+
+        const aRange = calculateFilterRange(a, aAtrType, aBaseType);
+        const bRange = calculateFilterRange(b, bAtrType, bBaseType);
+
+        if (!aRange && !bRange) return 0;
+        if (!aRange) return 1;
+        if (!bRange) return -1;
+
+        return aRange.lower - bRange.lower;
+      }
+    },
+    {
       title: '止盈百分比',
       key: 'takeProfitPercent',
       render: (_: any, record: StrategyOutput) => {
@@ -566,9 +700,9 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
 
         <Divider />
 
-        {/* 批量ATR类型设置 */}
-        <Row style={{ marginBottom: 16 }}>
-          <Col span={24}>
+        {/* 批量设置 */}
+        <Row style={{ marginBottom: 16 }} gutter={[16, 8]}>
+          <Col xs={24} lg={12}>
             <Space>
               <Text strong>批量设置杠杆ATR类型：</Text>
               <Select
@@ -587,10 +721,35 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
                 <Option value="4h">全部使用4小时ATR</Option>
                 <Option value="1d">全部使用日线ATR（保守）</Option>
               </Select>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                一键为所有策略设置相同的ATR类型
-              </Text>
             </Space>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Space>
+              <Text strong>批量设置滤波区间基准：</Text>
+              <Select
+                placeholder="选择基准类型"
+                style={{ width: 200 }}
+                onChange={(value: 'currentPrice' | 'schellingPoint') => {
+                  const newSelections: Record<string, 'currentPrice' | 'schellingPoint'> = {};
+                  strategies.forEach(strategy => {
+                    if (strategy.symbol) {
+                      newSelections[strategy.symbol] = value;
+                    }
+                  });
+                  setFilterBaseSelections(newSelections);
+                }}
+              >
+                <Option value="schellingPoint">全部使用谢林点基准</Option>
+                <Option value="currentPrice">全部使用当前价格基准</Option>
+              </Select>
+            </Space>
+          </Col>
+        </Row>
+        <Row style={{ marginBottom: 16 }}>
+          <Col span={24}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              💡 提示：ATR类型影响杠杆计算和滤波区间大小，基准类型决定滤波区间的中心点
+            </Text>
           </Col>
         </Row>
 
@@ -600,7 +759,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
           columns={columns}
           rowKey={(record) => record.symbol || Math.random().toString()}
           size="small"
-          scroll={{ x: 1350 }}
+          scroll={{ x: 1550 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
