@@ -111,11 +111,45 @@ export class StrategyEngine {
     // 关闭风险限制，直接返回基于ATR计算的杠杆
     return leverage;
   }
+
+  // 计算最小回调波幅（支持用户选择ATR类型）
+  calculateMinRetracementAmplitude(input: StrategyInput): number {
+    const leverageAtrType = input.leverageAtrType || '4h'; // 默认使用4h ATR
+
+    let atr: number;
+    let atrMax: number | undefined;
+
+    if (leverageAtrType === '1d' && input.atr1d !== undefined && input.atr1d > 0) {
+      // 使用日线ATR计算最小回调波幅
+      atr = input.atr1d;
+      atrMax = input.atr1dMax;
+    } else {
+      // 使用4小时ATR计算最小回调波幅（默认）
+      atr = input.atr4h;
+      atrMax = input.atr4hMax;
+    }
+
+    // 使用ATR最大值进行更保守的计算
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const currentPrice = input.currentPrice || 0;
+
+    if (currentPrice > 0 && atrForCalculation > 0) {
+      // 最小回调波幅 = ATR ÷ 当前价格
+      const minRetracementAmplitude = atrForCalculation / currentPrice;
+
+      console.log(`[StrategyEngine] ${input.symbol} - 最小回调波幅计算: ATR=${atrForCalculation}, 当前价格=${currentPrice}, 最小回调波幅=${(minRetracementAmplitude * 100).toFixed(2)}%`);
+
+      return minRetracementAmplitude;
+    }
+
+    return 0;
+  }
   
   // 生成兜底区策略
   generateSupportStrategy(input: StrategyInput): StrategyOutput {
     const riskConfig = RISK_CONFIGS['balanced']; // 使用默认的平衡型配置
     const leverage = this.calculateLeverage(input);
+    const minRetracementAmplitude = this.calculateMinRetracementAmplitude(input);
 
     // 使用ATR最大值进行更保守的滤波区间计算
     const atr4hForFilter = input.atr4hMax && input.atr4hMax > input.atr4h ? input.atr4hMax : input.atr4h;
@@ -164,7 +198,8 @@ export class StrategyEngine {
         riskLevel: leverage > 20 ? 'high' : leverage > 10 ? 'medium' : 'low',
         recommendedLeverage: leverage,
         riskRewardRatio: `1:${(takeProfitDistance / stopLossDistance).toFixed(1)}`,
-        confidence
+        confidence,
+        minRetracementAmplitude: minRetracementAmplitude
       },
       operations: {
         entry: {
@@ -243,6 +278,7 @@ export class StrategyEngine {
   generateBreakoutStrategy(input: StrategyInput): StrategyOutput {
     const riskConfig = RISK_CONFIGS['balanced']; // 使用默认的平衡型配置
     const leverage = this.calculateLeverage(input);
+    const minRetracementAmplitude = this.calculateMinRetracementAmplitude(input);
 
     // 计算观察和确认区间（用于后续扩展功能）
     // const observationZone = [input.currentPrice, input.schellingPoint];
@@ -290,7 +326,8 @@ export class StrategyEngine {
         riskLevel: leverage > 20 ? 'high' : leverage > 10 ? 'medium' : 'low',
         recommendedLeverage: leverage,
         riskRewardRatio: `1:${(takeProfitDistance / stopLossDistance).toFixed(1)}`,
-        confidence
+        confidence,
+        minRetracementAmplitude: minRetracementAmplitude
       },
       operations: {
         entry: {

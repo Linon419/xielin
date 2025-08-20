@@ -87,8 +87,31 @@ const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
     return null;
   };
 
+  // 计算动态最小回调波幅
+  const calculateDynamicMinRetracementAmplitude = (atrType: '4h' | '1d'): number => {
+    let atr: number, atrMax: number | undefined;
+
+    if (atrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+      atr = strategy.atr1d;
+      atrMax = strategy.atr1dMax;
+    } else {
+      atr = strategy.atr4h || 0;
+      atrMax = strategy.atr4hMax;
+    }
+
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const currentPrice = strategy.currentPrice || 0;
+
+    if (currentPrice > 0 && atrForCalculation > 0) {
+      return atrForCalculation / currentPrice;
+    }
+
+    return strategy.basic?.minRetracementAmplitude || 0;
+  };
+
   const dynamicLeverage = calculateDynamicLeverage(selectedAtrType);
   const filterRange = calculateFilterRange(selectedAtrType, filterBaseType);
+  const dynamicMinRetracementAmplitude = calculateDynamicMinRetracementAmplitude(selectedAtrType);
 
   // 获取风险等级颜色
   const getRiskColor = (level: string) => {
@@ -299,6 +322,50 @@ const StrategyResult: React.FC<StrategyResultProps> = ({ strategy }) => {
                 </div>
               )}
             </Space>
+          </Col>
+
+          <Col xs={24} sm={12}>
+            <Tooltip
+              title={
+                <div>
+                  <div><strong>最小回调波幅计算公式：</strong></div>
+                  <div>最小回调波幅 = ATR ÷ 当前价格</div>
+                  <div>使用ATR = {selectedAtrType === '1d' ? '日线' : '4小时'}ATR最大值</div>
+                  <div>= {(() => {
+                    let atr: number, atrMax: number | undefined;
+                    if (selectedAtrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+                      atr = strategy.atr1d;
+                      atrMax = strategy.atr1dMax;
+                    } else {
+                      atr = strategy.atr4h || 0;
+                      atrMax = strategy.atr4hMax;
+                    }
+                    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+                    const currentPrice = strategy.currentPrice || 0;
+                    return `${atrForCalculation.toFixed(6)} ÷ ${currentPrice.toFixed(6)}`;
+                  })()}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <div>最小回调波幅：<strong>{(dynamicMinRetracementAmplitude * 100).toFixed(2)}%</strong></div>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+                    表示基于波动性的最小回调幅度，用于判断趋势回调的有效性
+                  </div>
+                </div>
+              }
+              placement="top"
+            >
+              <div style={{ cursor: 'help', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '6px', backgroundColor: '#fafafa' }}>
+                <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                  最小回调波幅 ({selectedAtrType === '1d' ? '日线' : '4小时'}ATR)
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
+                  {(dynamicMinRetracementAmplitude * 100).toFixed(2)}%
+                </div>
+                <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                  ATR ÷ 当前价格
+                </div>
+              </div>
+            </Tooltip>
           </Col>
 
           {strategy.high24h && (

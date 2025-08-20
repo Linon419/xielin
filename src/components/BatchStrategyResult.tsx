@@ -118,6 +118,28 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     }));
   };
 
+  // 计算动态最小回调波幅
+  const calculateDynamicMinRetracementAmplitude = (strategy: StrategyOutput, atrType: '4h' | '1d'): number => {
+    let atr: number, atrMax: number | undefined;
+
+    if (atrType === '1d' && strategy.atr1d !== undefined && strategy.atr1d > 0) {
+      atr = strategy.atr1d;
+      atrMax = strategy.atr1dMax;
+    } else {
+      atr = strategy.atr4h || 0;
+      atrMax = strategy.atr4hMax;
+    }
+
+    const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+    const currentPrice = strategy.currentPrice || 0;
+
+    if (currentPrice > 0 && atrForCalculation > 0) {
+      return atrForCalculation / currentPrice;
+    }
+
+    return strategy.basic?.minRetracementAmplitude || 0;
+  };
+
   // 更新滤波区间基准类型选择
   const updateFilterBaseSelection = (symbol: string, baseType: 'currentPrice' | 'schellingPoint') => {
     setFilterBaseSelections(prev => ({
@@ -592,6 +614,77 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
     },
 
     {
+      title: '最小回调波幅',
+      key: 'minRetracementAmplitude',
+      width: 150,
+      render: (_: any, record: StrategyOutput) => {
+        const symbol = record.symbol || '';
+        const selectedAtrType = atrTypeSelections[symbol] || '4h';
+        const dynamicMinRetracementAmplitude = calculateDynamicMinRetracementAmplitude(record, selectedAtrType);
+        const atrTypeLabel = selectedAtrType === '1d' ? '日线' : '4小时';
+
+        return (
+          <Tooltip
+            title={
+              <div>
+                <div><strong>最小回调波幅计算公式：</strong></div>
+                <div>最小回调波幅 = ATR ÷ 当前价格</div>
+                <div>使用ATR = {atrTypeLabel}ATR最大值</div>
+                <div>= {(() => {
+                  let atr: number, atrMax: number | undefined;
+                  if (selectedAtrType === '1d' && record.atr1d !== undefined && record.atr1d > 0) {
+                    atr = record.atr1d;
+                    atrMax = record.atr1dMax;
+                  } else {
+                    atr = record.atr4h || 0;
+                    atrMax = record.atr4hMax;
+                  }
+                  const atrForCalculation = atrMax && atrMax > atr ? atrMax : atr;
+                  const currentPrice = record.currentPrice || 0;
+                  return `${atrForCalculation.toFixed(6)} ÷ ${currentPrice.toFixed(6)}`;
+                })()}</div>
+                <div style={{ marginTop: 8 }}>
+                  <div>最小回调波幅：<strong>{(dynamicMinRetracementAmplitude * 100).toFixed(2)}%</strong></div>
+                </div>
+                <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+                  表示基于波动性的最小回调幅度，用于判断趋势回调的有效性
+                </div>
+              </div>
+            }
+            placement="top"
+          >
+            <div style={{
+              cursor: 'help',
+              padding: '4px 8px',
+              border: '1px solid #d9d9d9',
+              borderRadius: '4px',
+              backgroundColor: '#fafafa',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>
+                {atrTypeLabel}ATR波幅
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#722ed1' }}>
+                {(dynamicMinRetracementAmplitude * 100).toFixed(2)}%
+              </div>
+            </div>
+          </Tooltip>
+        );
+      },
+      sorter: (a: StrategyOutput, b: StrategyOutput) => {
+        const aSymbol = a.symbol || '';
+        const bSymbol = b.symbol || '';
+        const aAtrType = atrTypeSelections[aSymbol] || '4h';
+        const bAtrType = atrTypeSelections[bSymbol] || '4h';
+
+        const aAmplitude = calculateDynamicMinRetracementAmplitude(a, aAtrType);
+        const bAmplitude = calculateDynamicMinRetracementAmplitude(b, bAtrType);
+
+        return aAmplitude - bAmplitude;
+      }
+    },
+
+    {
       title: '风险等级',
       dataIndex: ['basic', 'riskLevel'],
       key: 'riskLevel',
@@ -759,7 +852,7 @@ const BatchStrategyResult: React.FC<BatchStrategyResultProps> = ({ strategies })
           columns={columns}
           rowKey={(record) => record.symbol || Math.random().toString()}
           size="small"
-          scroll={{ x: 1550 }}
+          scroll={{ x: 1700 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

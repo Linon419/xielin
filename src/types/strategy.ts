@@ -41,6 +41,7 @@ export interface StrategyOutput {
     recommendedLeverage: number;
     riskRewardRatio: string;
     confidence: number; // 置信度 0-100
+    minRetracementAmplitude: number; // 最小回调波幅（百分比）
   };
 
   // 警告信息（用于批量模式的非严格验证）
