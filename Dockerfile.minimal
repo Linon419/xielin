@@ -28,6 +28,8 @@ RUN apk add --no-cache \
     libffi-dev \
     openssl-dev \
     python3-dev \
+    build-base \
+    linux-headers \
     && rm -rf /var/cache/apk/* \
     && mkdir -p /var/www/html /app/data /var/run/nginx
 
@@ -36,13 +38,12 @@ WORKDIR /app
 # Python环境
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app
 
-# 升级pip并安装Python依赖
-COPY backend-example/requirements.txt ./
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip cache purge && \
-    rm requirements.txt && \
-    apk del gcc musl-dev libffi-dev openssl-dev python3-dev
+# 升级pip并安装Python依赖（使用简化的requirements）
+COPY requirements-minimal.txt ./requirements.txt
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip cache purge && rm requirements.txt
+RUN apk del gcc musl-dev libffi-dev openssl-dev python3-dev build-base linux-headers
 
 # 复制应用文件 (使用通配符复制所有Python文件)
 COPY backend-example/*.py ./
