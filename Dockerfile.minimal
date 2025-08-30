@@ -19,20 +19,30 @@ RUN npm run build && rm -rf node_modules src public tsconfig.json package*.json
 # 阶段 2: 运行时镜像 (使用alpine)
 FROM python:3.11-alpine AS runtime
 
-# 单个RUN指令安装所有依赖
-RUN apk add --no-cache nginx curl && \
-    rm -rf /var/cache/apk/* && \
-    mkdir -p /var/www/html /app/data /var/run/nginx
+# 单个RUN指令安装所有系统依赖（包括编译工具）
+RUN apk add --no-cache \
+    nginx \
+    curl \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    python3-dev \
+    && rm -rf /var/cache/apk/* \
+    && mkdir -p /var/www/html /app/data /var/run/nginx
 
 WORKDIR /app
 
 # Python环境
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app
 
-# 安装Python依赖
+# 升级pip并安装Python依赖
 COPY backend-example/requirements.txt ./
-RUN pip install --no-cache-dir --no-compile -r requirements.txt && \
-    pip cache purge && rm requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge && \
+    rm requirements.txt && \
+    apk del gcc musl-dev libffi-dev openssl-dev python3-dev
 
 # 复制应用文件 (使用通配符复制所有Python文件)
 COPY backend-example/*.py ./

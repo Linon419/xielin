@@ -29,11 +29,16 @@ RUN npm run build && \
 # 阶段 2: Python后端 (使用alpine)
 FROM python:3.11-alpine AS backend
 
-# 安装运行时依赖 (合并为单个RUN减少层数)
+# 安装运行时依赖和编译工具 (合并为单个RUN减少层数)
 RUN apk add --no-cache \
     nginx \
     curl \
-    supervisor && \
+    supervisor \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    python3-dev && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
@@ -46,9 +51,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # 复制requirements文件并安装Python依赖
 COPY backend-example/requirements.txt ./
-RUN pip install --no-cache-dir --no-compile -r requirements.txt && \
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
     pip cache purge && \
-    rm requirements.txt
+    rm requirements.txt && \
+    apk del gcc musl-dev libffi-dev openssl-dev python3-dev
 
 # 复制后端代码 (只复制必要文件)
 COPY backend-example/*.py ./
