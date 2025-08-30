@@ -52,7 +52,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: ${{ env.REGISTRY }}/${{ github.repository }}
         tags: |
           type=ref,event=branch,suffix=${{ matrix.variant.suffix }}
           type=ref,event=pr,suffix=${{ matrix.variant.suffix }}
@@ -73,10 +73,10 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
           type=gha,scope=${{ matrix.variant.name }}
-          type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.variant.name }}
+          type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}:buildcache-${{ matrix.variant.name }}
         cache-to: |
           type=gha,mode=max,scope=${{ matrix.variant.name }}
-          type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.variant.name }},mode=max
+          type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}:buildcache-${{ matrix.variant.name }},mode=max
         build-args: |
           BUILDKIT_INLINE_CACHE=1
 
@@ -100,29 +100,29 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Pull 所有镜像版本
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main || true
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-optimized || true
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-minimal || true
+        docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main || true
+        docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized || true
+        docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main-minimal || true
         
         # 获取镜像大小
         echo "| 版本 | 镜像大小 | 优化程度 | 推荐用途 |" >> $GITHUB_STEP_SUMMARY
         echo "|------|----------|----------|----------|" >> $GITHUB_STEP_SUMMARY
         
         # 标准版本
-        if docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
-          STANDARD_SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main --format "{{.Size}}" | head -1)
+        if docker images ${{ env.REGISTRY }}/${{ github.repository }}:main --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
+          STANDARD_SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository }}:main --format "{{.Size}}" | head -1)
           echo "| 标准版 | $STANDARD_SIZE | 基准 | 完整功能，开发环境 |" >> $GITHUB_STEP_SUMMARY
         fi
         
         # 优化版本
-        if docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-optimized --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
-          OPTIMIZED_SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-optimized --format "{{.Size}}" | head -1)
+        if docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
+          OPTIMIZED_SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized --format "{{.Size}}" | head -1)
           echo "| 优化版 | $OPTIMIZED_SIZE | 🟢 优化 | 生产环境，平衡性能 |" >> $GITHUB_STEP_SUMMARY
         fi
         
         # 极简版本
-        if docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-minimal --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
-          MINIMAL_SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-minimal --format "{{.Size}}" | head -1)
+        if docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-minimal --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
+          MINIMAL_SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-minimal --format "{{.Size}}" | head -1)
           echo "| 极简版 | $MINIMAL_SIZE | 🟢🟢 最优 | 资源受限环境 |" >> $GITHUB_STEP_SUMMARY
         fi
         
@@ -131,12 +131,12 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**极简版（推荐）：**" >> $GITHUB_STEP_SUMMARY
         echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest  # 自动使用minimal版本" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.REGISTRY }}/${{ github.repository }}:latest  # 自动使用minimal版本" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**优化版：**" >> $GITHUB_STEP_SUMMARY
         echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-optimized" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
 
   # 自动部署到服务器
@@ -151,9 +151,9 @@ jobs:
         echo "## 🚀 部署就绪!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 可用镜像版本:" >> $GITHUB_STEP_SUMMARY
-        echo "- **极简版(推荐):** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **优化版:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-optimized\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **标准版:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **极简版(推荐):** \`${{ env.REGISTRY }}/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **优化版:** \`${{ env.REGISTRY }}/${{ github.repository }}:main-optimized\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **标准版:** \`${{ env.REGISTRY }}/${{ github.repository }}:main\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Docker Compose 部署:" >> $GITHUB_STEP_SUMMARY
         echo '```bash' >> $GITHUB_STEP_SUMMARY
