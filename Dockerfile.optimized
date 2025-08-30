@@ -52,10 +52,6 @@ RUN pip install --no-cache-dir --no-compile -r requirements.txt && \
 
 # 复制后端代码 (只复制必要文件)
 COPY backend-example/*.py ./
-COPY backend-example/routers/ ./routers/
-COPY backend-example/models/ ./models/
-COPY backend-example/services/ ./services/ 2>/dev/null || true
-COPY backend-example/utils/ ./utils/ 2>/dev/null || true
 
 # 创建目录结构
 RUN mkdir -p /var/www/html /var/log/supervisor /app/data /var/run/nginx && \
