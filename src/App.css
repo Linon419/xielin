@@ -47,7 +47,6 @@ body {
   max-width: 95vw; /* 使用视口宽度的95%，充分利用屏幕空间 */
   margin: 0 auto;
   padding: 24px;
-  min-width: 1200px; /* 设置最小宽度确保在小屏幕上不会太窄 */
 }
 
 /* 介绍区域 */
@@ -146,50 +145,76 @@ body {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .content-wrapper {
-    padding: 16px;
+    padding: 12px;
+    max-width: 100vw;
   }
   
   .intro-section {
-    padding: 32px 16px;
+    padding: 20px 12px;
+    margin-bottom: 16px;
   }
   
   .intro-content h2 {
-    font-size: 24px;
+    font-size: 20px;
+    line-height: 1.3;
   }
   
   .strategy-form-card {
     position: static;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
   
   .header-content {
-    padding: 0 16px;
+    padding: 0 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
   
   .header-content h3 {
-    font-size: 18px;
+    font-size: 16px;
+    margin: 0;
   }
   
   .form-section {
     padding: 12px;
+    margin-bottom: 16px;
   }
   
   .placeholder-content > div {
-    padding: 40px 16px;
+    padding: 30px 12px;
+  }
+  
+  .main-section {
+    margin-top: 16px;
+  }
+  
+  .ant-tabs-content-holder {
+    overflow-x: hidden;
   }
 }
 
 @media (max-width: 576px) {
+  .content-wrapper {
+    padding: 8px;
+  }
+  
+  .intro-section {
+    padding: 16px 8px;
+  }
+  
   .intro-content h2 {
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1.2;
   }
   
   .intro-content p {
     font-size: 14px;
+    margin-bottom: 16px;
   }
   
   .intro-content .ant-col {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
   
   .strategy-overview-card .card-header h2 {
@@ -201,7 +226,33 @@ body {
   }
   
   .ant-statistic-content {
-    font-size: 18px;
+    font-size: 16px;
+  }
+  
+  .header-content {
+    padding: 0 8px;
+    height: auto;
+    min-height: 64px;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .header-content h3 {
+    font-size: 14px;
+    text-align: center;
+  }
+  
+  .app-header {
+    padding: 8px 0;
+  }
+  
+  .ant-tabs .ant-tabs-tab {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .form-section h4 {
+    font-size: 14px;
   }
 }
 
@@ -311,6 +362,29 @@ body {
   height: 100% !important;
 }
 
+/* 移动端图表优化 */
+@media (max-width: 768px) {
+  .macd-chart-wrapper {
+    height: 250px !important;
+    min-height: 250px !important;
+  }
+  
+  .strategy-chart-container {
+    min-height: 300px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .macd-chart-wrapper {
+    height: 200px !important;
+    min-height: 200px !important;
+  }
+  
+  .strategy-chart-container {
+    min-height: 250px !important;
+  }
+}
+
 /* 策略图表容器样式 */
 .strategy-chart-container {
   width: 100% !important;
@@ -364,6 +438,65 @@ body {
 
 .two-charts-flex-container > div {
   min-width: 0; /* 允许flex项目收缩到内容以下 */
+}
+
+/* 移动端额外优化 */
+@media (max-width: 480px) {
+  .header-content h3 {
+    font-size: 12px !important;
+  }
+  
+  .header-content .anticon {
+    font-size: 20px !important;
+  }
+  
+  .intro-content h2 {
+    font-size: 16px !important;
+  }
+  
+  .ant-row {
+    margin: 0 !important;
+  }
+  
+  .ant-col {
+    padding: 0 4px !important;
+  }
+  
+  .ant-card {
+    margin-bottom: 8px;
+  }
+  
+  .ant-tabs-content-holder {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* 横屏优化 */
+@media (max-height: 600px) and (orientation: landscape) {
+  .intro-section {
+    padding: 16px 12px;
+  }
+  
+  .content-wrapper {
+    padding: 12px;
+  }
+  
+  .app-header {
+    min-height: 48px;
+  }
+  
+  .header-content {
+    min-height: 48px;
+  }
+}
+
+/* 防止内容溢出 */
+.app-content,
+.content-wrapper,
+.main-section {
+  overflow-x: hidden;
+  word-wrap: break-word;
 }
 
 /* 打印样式 */

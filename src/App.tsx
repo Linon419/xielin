@@ -87,14 +87,14 @@ const App: React.FC = () => {
       {/* 头部 */}
       <Header className="app-header">
         <div className="header-content">
-          <Space size="middle" align="center">
-            <RocketOutlined style={{ fontSize: 28, color: '#1890ff' }} />
-            <Title level={3} style={{ margin: 0, color: 'white' }}>
+          <Space size="small" align="center" style={{ flex: 1, minWidth: 0 }}>
+            <RocketOutlined style={{ fontSize: 24, color: '#1890ff', flexShrink: 0 }} />
+            <Title level={3} style={{ margin: 0, color: 'white', fontSize: '18px', lineHeight: '1.2', wordBreak: 'keep-all', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               加密货币谢林点交易策略平台
             </Title>
           </Space>
-          <div style={{ marginLeft: 'auto' }}>
-            <Space size="middle">
+          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <Space size="small">
               <ApiStatusIndicator />
               <UserMenu />
             </Space>
