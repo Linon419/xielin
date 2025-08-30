@@ -52,12 +52,13 @@ jobs:
       with:
         context: .
         file: Dockerfile.minimal
-        platforms: linux/amd64  # 先只构建amd64减少时间
+        platforms: linux/amd64
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=minimal-amd64
+        cache-to: type=gha,mode=max,scope=minimal-amd64
+        pull: true
 
   # 可选：构建其他版本
   build-others:
@@ -107,8 +108,9 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha,scope=${{ matrix.variant.name }}
-        cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}
+        cache-from: type=gha,scope=${{ matrix.variant.name }}-amd64
+        cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}-amd64
+        pull: true
 
   # 镜像大小分析和比较
   analyze:
