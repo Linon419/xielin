@@ -44,7 +44,8 @@ jobs:
           type=ref,event=pr,suffix=-minimal
           type=semver,pattern={{version}},suffix=-minimal
           type=sha,format=short,suffix=-minimal
-          latest={{is_default_branch}}
+        flavor: |
+          latest=${{ github.ref == 'refs/heads/main' }}
 
     - name: Build and push minimal Docker image
       uses: docker/build-push-action@v5
