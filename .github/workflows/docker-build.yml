@@ -12,34 +12,20 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # 构建多个优化版本的镜像
-  build-matrix:
+  # 优先构建极简版本（最重要的）
+  build-minimal:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        variant: [
-          { name: "standard", dockerfile: "Dockerfile", suffix: "" },
-          { name: "optimized", dockerfile: "Dockerfile.optimized", suffix: "-optimized" },
-          { name: "minimal", dockerfile: "Dockerfile.minimal", suffix: "-minimal" }
-        ]
+    timeout-minutes: 30
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: 'arm64,amd64'
-
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-      with:
-        driver-opts: |
-          image=moby/buildkit:v0.12.0
 
     - name: Log in to Container Registry
       uses: docker/login-action@v3
@@ -54,37 +40,80 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ github.repository }}
         tags: |
-          type=ref,event=branch,suffix=${{ matrix.variant.suffix }}
-          type=ref,event=pr,suffix=${{ matrix.variant.suffix }}
-          type=semver,pattern={{version}},suffix=${{ matrix.variant.suffix }}
-          type=semver,pattern={{major}}.{{minor}},suffix=${{ matrix.variant.suffix }}
-          type=sha,format=short,suffix=${{ matrix.variant.suffix }}
-        flavor: |
-          latest=${{ matrix.variant.name == 'minimal' && github.ref == 'refs/heads/main' }}
+          type=ref,event=branch,suffix=-minimal
+          type=ref,event=pr,suffix=-minimal
+          type=semver,pattern={{version}},suffix=-minimal
+          type=sha,format=short,suffix=-minimal
+          latest={{is_default_branch}}
 
-    - name: Build and push Docker image (${{ matrix.variant.name }})
+    - name: Build and push minimal Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile.minimal
+        platforms: linux/amd64  # 先只构建amd64减少时间
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # 可选：构建其他版本
+  build-others:
+    runs-on: ubuntu-latest
+    needs: build-minimal
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        variant: [
+          { name: "optimized", dockerfile: "Dockerfile.optimized", suffix: "-optimized" },
+          { name: "standard", dockerfile: "Dockerfile", suffix: "" }
+        ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for ${{ matrix.variant.name }}
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}
+        tags: |
+          type=ref,event=branch,suffix=${{ matrix.variant.suffix }}
+          type=sha,format=short,suffix=${{ matrix.variant.suffix }}
+
+    - name: Build and push ${{ matrix.variant.name }} image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ${{ matrix.variant.dockerfile }}
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
+        platforms: linux/amd64
+        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: |
-          type=gha,scope=${{ matrix.variant.name }}
-          type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}:buildcache-${{ matrix.variant.name }}
-        cache-to: |
-          type=gha,mode=max,scope=${{ matrix.variant.name }}
-          type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}:buildcache-${{ matrix.variant.name }},mode=max
-        build-args: |
-          BUILDKIT_INLINE_CACHE=1
+        cache-from: type=gha,scope=${{ matrix.variant.name }}
+        cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}
 
   # 镜像大小分析和比较
   analyze:
-    needs: build-matrix
+    needs: [build-minimal, build-others]
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
     - name: Log in to Container Registry
@@ -141,9 +170,9 @@ jobs:
 
   # 自动部署到服务器
   deploy:
-    needs: [build-matrix, analyze]
+    needs: [build-minimal]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
     - name: Deploy notification
