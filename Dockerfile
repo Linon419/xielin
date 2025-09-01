@@ -45,12 +45,6 @@ RUN apt-get update && apt-get install -y \
     nginx \
     curl \
     gcc \
-    g++ \
-    python3-dev \
-    python3-pip \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,19 +54,11 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 ENV NODE_ENV=production
 
-# 先复制requirements文件
-COPY backend-example/requirements.txt ./
-
-# 升级pip并安装Python依赖
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir ccxt==4.1.64 && \
-    pip install --no-cache-dir -r requirements.txt && \
-    python -c "import sys; print('Python path:', sys.path)" && \
-    python -c "import ccxt; print('ccxt version:', ccxt.__version__)" && \
-    pip list | grep ccxt
-
-# 复制其余后端代码
+# 复制后端代码
 COPY backend-example/ ./
+
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 创建前端文件目录
 RUN mkdir -p /var/www/html
