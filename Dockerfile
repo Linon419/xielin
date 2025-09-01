@@ -47,6 +47,10 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     python3-dev \
+    python3-pip \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,11 +64,12 @@ ENV NODE_ENV=production
 COPY backend-example/requirements.txt ./
 
 # 升级pip并安装Python依赖
-RUN pip install --upgrade pip && \
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir ccxt==4.1.64 && \
     pip install --no-cache-dir -r requirements.txt && \
     python -c "import sys; print('Python path:', sys.path)" && \
     python -c "import ccxt; print('ccxt version:', ccxt.__version__)" && \
-    pip show ccxt
+    pip list | grep ccxt
 
 # 复制其余后端代码
 COPY backend-example/ ./
