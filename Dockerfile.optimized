@@ -38,7 +38,10 @@ RUN apk add --no-cache \
     musl-dev \
     libffi-dev \
     openssl-dev \
-    python3-dev && \
+    python3-dev \
+    g++ \
+    gfortran \
+    linux-headers && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
@@ -54,11 +57,13 @@ COPY backend-example/requirements.txt ./
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip cache purge && \
-    rm requirements.txt && \
-    apk del gcc musl-dev libffi-dev openssl-dev python3-dev
+    rm requirements.txt
 
 # 复制后端代码 (只复制必要文件)
 COPY backend-example/*.py ./
+
+# 移除编译依赖以减小镜像大小
+RUN apk del gcc musl-dev g++ gfortran linux-headers python3-dev
 
 # 创建目录结构
 RUN mkdir -p /var/www/html /var/log/supervisor /app/data /var/run/nginx && \
