@@ -1,4 +1,4 @@
-name: Build and Push Optimized Docker Images
+name: Build and Push Multi-Architecture Docker Image
 
 on:
   push:
@@ -12,22 +12,21 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # 优先构建极简版本（最重要的）
-  build-minimal:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    timeout-minutes: 45
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # 设置 QEMU 支持多架构构建
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
       with:
-        platforms: arm64,amd64
+        platforms: 'arm64,amd64'
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -43,165 +42,52 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ github.repository }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=ref,event=branch,suffix=-minimal
-          type=ref,event=pr,suffix=-minimal
-          type=semver,pattern={{version}},suffix=-minimal
-          type=sha,format=short,suffix=-minimal
-        flavor: |
-          latest=${{ github.ref == 'refs/heads/main' }}
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,format=short
 
-    - name: Build and push minimal Docker image
+    - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: Dockerfile.minimal
         platforms: linux/amd64,linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: |
-          type=gha,scope=minimal-multiarch
-        cache-to: |
-          type=gha,mode=max,scope=minimal-multiarch
-        pull: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-  # 可选：构建其他版本
-  build-others:
-    runs-on: ubuntu-latest
-    needs: build-minimal
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      contents: read
-      packages: write
-    timeout-minutes: 45
-    strategy:
-      matrix:
-        variant: [
-          { name: "optimized", dockerfile: "Dockerfile.optimized", suffix: "-optimized" },
-          { name: "standard", dockerfile: "Dockerfile", suffix: "" }
-        ]
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: arm64,amd64
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata for ${{ matrix.variant.name }}
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ github.repository }}
-        tags: |
-          type=ref,event=branch,suffix=${{ matrix.variant.suffix }}
-          type=sha,format=short,suffix=${{ matrix.variant.suffix }}
-
-    - name: Build and push ${{ matrix.variant.name }} image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ${{ matrix.variant.dockerfile }}
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: |
-          type=gha,scope=${{ matrix.variant.name }}-multiarch
-        cache-to: |
-          type=gha,mode=max,scope=${{ matrix.variant.name }}-multiarch
-        pull: true
-
-  # 镜像大小分析和比较
-  analyze:
-    needs: [build-minimal, build-others]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Pull and analyze images
+    - name: Create deployment summary
       run: |
-        echo "## 📊 Docker镜像体积对比分析" >> $GITHUB_STEP_SUMMARY
+        echo "## 🐳 Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Pull 所有镜像版本
-        docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main || true
-        docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized || true
-        docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main-minimal || true
-        
-        # 获取镜像大小
-        echo "| 版本 | 镜像大小 | 优化程度 | 推荐用途 |" >> $GITHUB_STEP_SUMMARY
-        echo "|------|----------|----------|----------|" >> $GITHUB_STEP_SUMMARY
-        
-        # 标准版本
-        if docker images ${{ env.REGISTRY }}/${{ github.repository }}:main --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
-          STANDARD_SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository }}:main --format "{{.Size}}" | head -1)
-          echo "| 标准版 | $STANDARD_SIZE | 基准 | 完整功能，开发环境 |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # 优化版本
-        if docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
-          OPTIMIZED_SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized --format "{{.Size}}" | head -1)
-          echo "| 优化版 | $OPTIMIZED_SIZE | 🟢 优化 | 生产环境，平衡性能 |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # 极简版本
-        if docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-minimal --format "table {{.Size}}" | tail -1 > /dev/null 2>&1; then
-          MINIMAL_SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository }}:main-minimal --format "{{.Size}}" | head -1)
-          echo "| 极简版 | $MINIMAL_SIZE | 🟢🟢 最优 | 资源受限环境 |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
+        echo "### Combined Frontend + Backend Image" >> $GITHUB_STEP_SUMMARY
+        echo "- **Registry:** ${{ env.REGISTRY }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image:** ${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Platform:** linux/arm64" >> $GITHUB_STEP_SUMMARY
+        echo "- **Contains:** React Frontend + FastAPI Backend + Nginx" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🚀 部署命令" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**极简版（推荐）：**" >> $GITHUB_STEP_SUMMARY
+        echo "### Pull Command" >> $GITHUB_STEP_SUMMARY
         echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.REGISTRY }}/${{ github.repository }}:latest  # 自动使用minimal版本" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**优化版：**" >> $GITHUB_STEP_SUMMARY
-        echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.REGISTRY }}/${{ github.repository }}:main-optimized" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
 
-  # 自动部署到服务器
+  # 可选：自动部署到ARM服务器
   deploy:
-    needs: [build-minimal]
+    needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Deploy notification
       run: |
-        echo "## 🚀 部署就绪!" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 可用镜像版本:" >> $GITHUB_STEP_SUMMARY
-        echo "- **极简版(推荐):** \`${{ env.REGISTRY }}/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **优化版:** \`${{ env.REGISTRY }}/${{ github.repository }}:main-optimized\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **标准版:** \`${{ env.REGISTRY }}/${{ github.repository }}:main\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Docker Compose 部署:" >> $GITHUB_STEP_SUMMARY
-        echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "docker-compose pull && docker-compose up -d" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "🚀 Ready for deployment!"
+        echo "Combined image is available at:"
+        echo "- ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        echo ""
+        echo "To deploy on your ARM server, run:"
+        echo "docker-compose pull && docker-compose up -d"

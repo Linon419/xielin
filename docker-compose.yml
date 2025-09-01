@@ -1,17 +1,14 @@
 version: '3.8'
 
 services:
-  # 合并的前后端服务 - 使用优化镜像
+  # 合并的前后端服务
   xielin:
-    # 优先使用极简版镜像（体积最小）
-    image: ghcr.io/linon419/xielin:latest  # 自动映射到minimal版本
-    # 备选方案：
-    # image: ghcr.io/linon419/xielin:main-optimized  # 优化版本
-    # image: ghcr.io/linon419/xielin:main            # 标准版本
-    # 本地构建（开发用）：
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile.minimal
+    # 临时使用本地构建，直到GitHub Actions构建完成
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # 构建完成后可以切换回镜像：
+    # image: ghcr.io/linon419/xielin:latest
     container_name: xielin-app
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
