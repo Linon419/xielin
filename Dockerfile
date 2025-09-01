@@ -56,8 +56,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 ENV NODE_ENV=production
 
-# 复制后端代码
-COPY backend-example/ ./
+# 先复制requirements文件
+COPY backend-example/requirements.txt ./
 
 # 升级pip并安装Python依赖
 RUN pip install --upgrade pip && \
@@ -65,6 +65,9 @@ RUN pip install --upgrade pip && \
     python -c "import sys; print('Python path:', sys.path)" && \
     python -c "import ccxt; print('ccxt version:', ccxt.__version__)" && \
     pip show ccxt
+
+# 复制其余后端代码
+COPY backend-example/ ./
 
 # 创建前端文件目录
 RUN mkdir -p /var/www/html
