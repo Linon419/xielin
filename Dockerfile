@@ -45,6 +45,8 @@ RUN apt-get update && apt-get install -y \
     nginx \
     curl \
     gcc \
+    g++ \
+    python3-dev \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
